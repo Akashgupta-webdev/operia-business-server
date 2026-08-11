@@ -23,12 +23,9 @@ app.use(express.json({ limit: "1mb" }));
 app.use(express.urlencoded({ extended: true, limit: "1mb" }));
 app.use(cookieParser());
 
-const allowedOrigins = new Set(
-  (process.env.ALLOWED_ORIGINS ?? "http://localhost:5173")
-    .split(",")
-    .map((origin) => origin.trim())
-    .filter(Boolean)
-);
+const allowedOrigins = [
+  process.env.ALLOWED_ORIGIN
+];
 
 app.use(
   cors({
