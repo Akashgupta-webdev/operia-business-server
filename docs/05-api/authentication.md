@@ -21,8 +21,11 @@ The request contains only the high-entropy key originally issued to the User:
 The access key must contain exactly 12 characters. The authentication
 controller hashes it before querying the stored User credential digest.
 
-Successful authentication sets `accessToken` and `refreshToken` as `HttpOnly`,
-`SameSite=Strict` cookies. Production cookies are also `Secure`. Token values
+Successful authentication sets `accessToken` and `refreshToken` as `HttpOnly`
+cookies. Local development uses `SameSite=Strict`. Production uses
+`SameSite=None; Secure` so a separately hosted HTTPS frontend can send the
+cookies to the API. Production CORS must allow the exact trusted frontend
+origin with credentials enabled; a wildcard origin is prohibited. Token values
 are not returned in JSON. The response contains the safe User representation.
 
 ## 3. Refresh and Session

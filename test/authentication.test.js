@@ -4,6 +4,7 @@ import { after, before, test } from "node:test";
 import app from "../src/app.js";
 import { getAuthenticationConfig } from "../src/config/authentication.js";
 import { AuthenticationError } from "../src/modules/authentication/errors/authentication.error.js";
+import { setAuthenticationCookies } from "../src/modules/authentication/controllers/authentication.controller.js";
 import {
   hashRefreshToken,
   issueTokenPair,
@@ -92,6 +93,47 @@ test("validates authentication secrets and token lifetimes", () => {
   assert.equal(config.accessTokenTtlSeconds, 60);
   assert.equal(config.refreshTokenTtlSeconds, 120);
   assert.equal(config.cookieSecure, true);
+});
+
+test("uses secure cross-site authentication cookies in production", () => {
+  const originalEnvironment = {
+    NODE_ENV: process.env.NODE_ENV,
+    AUTH_ACCESS_TOKEN_SECRET: process.env.AUTH_ACCESS_TOKEN_SECRET,
+    AUTH_REFRESH_TOKEN_SECRET: process.env.AUTH_REFRESH_TOKEN_SECRET,
+  };
+  const cookies = [];
+  const response = {
+    cookie(name, value, options) {
+      cookies.push({ name, value, options });
+    },
+  };
+
+  process.env.NODE_ENV = "production";
+  process.env.AUTH_ACCESS_TOKEN_SECRET = tokenConfig.accessTokenSecret;
+  process.env.AUTH_REFRESH_TOKEN_SECRET = tokenConfig.refreshTokenSecret;
+
+  try {
+    setAuthenticationCookies(response, {
+      accessToken: "access-token",
+      refreshToken: "refresh-token",
+    });
+  } finally {
+    for (const [name, value] of Object.entries(originalEnvironment)) {
+      if (value === undefined) {
+        delete process.env[name];
+      } else {
+        process.env[name] = value;
+      }
+    }
+  }
+
+  assert.equal(cookies.length, 2);
+  for (const { options } of cookies) {
+    assert.equal(options.httpOnly, true);
+    assert.equal(options.secure, true);
+    assert.equal(options.sameSite, "none");
+    assert.equal(options.path, "/");
+  }
 });
 
 test("rejects invalid login request fields", async () => {
