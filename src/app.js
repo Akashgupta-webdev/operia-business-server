@@ -11,7 +11,8 @@ import clientRouter from "./modules/clients/routes/client.route.js";
 import userRouter from "./modules/user/routes/user.route.js";
 import { systemHealth } from "./utils/systemHealth.js";
 import { undeclaredRouteHandler } from "./utils/undeclaredRoute.js";
-
+import { config } from 'dotenv'
+config();
 
 const app = express();
 
@@ -27,19 +28,11 @@ console.log(process.env.ALLOWED_ORIGIN)
 const allowedOrigins = [
   process.env.ALLOWED_ORIGIN
 ];
+console.log(allowedOrigins)
 
 app.use(
   cors({
-    origin(origin, callback) {
-      if (!origin || allowedOrigins.has(origin)) {
-        return callback(null, true);
-      }
-
-      const error = new Error("Origin is not allowed.");
-      error.status = 403;
-      error.code = "ORIGIN_NOT_ALLOWED";
-      return callback(error);
-    },
+    origin: allowedOrigins,
     credentials: true,
     methods: ["GET", "POST", "PATCH", "OPTIONS"],
     allowedHeaders: [
