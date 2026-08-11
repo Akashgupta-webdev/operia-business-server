@@ -14,6 +14,8 @@ const connectDb = async () => {
         logger.error("MongoDB database connection failed.", {
             errorName: error.name,
             errorCode: error.code,
+            errorMessage: error.message,
+            errorCause: error.cause?.message,
         });
         throw new Error("Database connection failed.", { cause: error });
     }

@@ -24,7 +24,7 @@ app.use(express.urlencoded({ extended: true, limit: "1mb" }));
 app.use(cookieParser());
 
 const allowedOrigins = new Set(
-  (process.env.CORS_ALLOWED_ORIGINS ?? "http://localhost:5173")
+  (process.env.ALLOWED_ORIGINS ?? "http://localhost:5173")
     .split(",")
     .map((origin) => origin.trim())
     .filter(Boolean)
