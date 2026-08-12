@@ -152,3 +152,39 @@ The following persist atomically:
 
 Physical retention, encryption, backup, and recovery settings belong to the
 deployment/security design.
+
+## 11. Companies
+
+Companies represent insured or prospect business entities. They are not the
+system's future multi-tenant Organization boundary.
+
+| Field | Meaning / constraint |
+| --- | --- |
+| `client` | Required reference to the owning Client record's MongoDB `_id` |
+| `companyId` | Immutable unique identifier allocated as `comp-{sequence}` |
+| `companyName`, `tradeName`, `legalName` | Required display name and optional trading/legal names |
+| `companyType`, `freeZoneName` | `MAINLAND`, `FREE_ZONE`, or `OFFSHORE`, plus optional free-zone name |
+| `licence` | Optional number, activity, issue date, and expiry date |
+| `establishment` | Optional card number and card expiry date |
+| `vatTrnNumber`, `corporateTaxRegistrationNumber` | Optional tax registration identifiers |
+| `companyEmail`, `companyMobile`, `address` | Optional company contact details |
+| `bankName`, `accountName`, `iban`, `accountNumber` | Optional bank account details |
+| `companyStatus` | `ACTIVE`, `UNDER_FORMATION`, `SUSPENDED`, `EXPIRED`, or `CLOSED` |
+| `notes` | Array of bounded note strings |
+| `version` | Optimistic concurrency |
+| `createdAt`, `updatedAt` | UTC timestamps |
+
+## 12. Counters
+
+Counters provide atomic numeric sequences for modules that require an
+incrementing sequence value. Public resource identifiers remain opaque.
+
+| Field | Meaning / constraint |
+| --- | --- |
+| `name` | Required, immutable, normalized sequence name; unique across counters |
+| `count` | Non-negative safe integer containing the last allocated value |
+| `createdAt`, `updatedAt` | UTC timestamps |
+
+Allocating a value atomically increments the named counter. Separate normalized
+names have independent sequences, and counter values must not be reused after
+allocation.

@@ -3,9 +3,10 @@ import { ClientNotFoundError } from "../errors/client.error.js";
 import Client from "../models/client.model.js";
 
 const CLIENT_SUMMARY_FIELDS =
-  "clientId name emiratesIdNumber emailAddress mobileNumber whatsappNumber clientStatus";
+  "_id clientId name emiratesIdNumber emailAddress mobileNumber whatsappNumber clientStatus";
 
 const toClientSummary = (client) => ({
+  _id: client._id,
   clientId: client.clientId,
   name: client.name,
   emiratesIdNumber: client.emiratesIdNumber ?? null,

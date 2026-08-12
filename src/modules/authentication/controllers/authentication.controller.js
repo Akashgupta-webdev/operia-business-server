@@ -13,7 +13,7 @@ const REFRESH_COOKIE = "refreshToken";
 const cookieOptions = (maxAge, config) => ({
   httpOnly: true,
   secure: config.cookieSecure,
-  sameSite: "none",
+  sameSite: config.cookieSecure ? "none" : "strict",
   path: "/",
   maxAge,
 });

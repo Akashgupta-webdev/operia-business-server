@@ -14,6 +14,8 @@ maintains them.
 | User | normalized `email` | Prevent duplicate identities |
 | Notification | `commandId`, `recipientId`, `type` | Prevent retry duplicates |
 | Idempotency | `actorId`, `operation`, `key` | Enforce idempotency scope |
+| Counter | normalized `name` | Maintain one atomic sequence per counter name |
+| Company | `companyId` | Prevent duplicate allocated company identifiers |
 
 Lead phone and email are intentionally non-unique because duplicate detection
 warns but does not silently block or merge valid separate opportunities.
@@ -39,7 +41,13 @@ values and optionally limit workload indexes to non-terminal statuses.
 | `leadId`, `scheduledAt`, `id` | Lead Follow-up history |
 | `leadId`, `status`, `scheduledAt`, `id` | Earliest scheduled Follow-up |
 
-## 5. History and Notification Indexes
+## 5. Company Indexes
+
+| Ordered fields | Supports |
+| --- | --- |
+| `client`, `createdAt`, `companyId` | Paginated Company lookup for one Client |
+
+## 6. History and Notification Indexes
 
 | Record | Ordered fields | Supports |
 | --- | --- | --- |
@@ -51,14 +59,14 @@ values and optionally limit workload indexes to non-terminal statuses.
 Append-only history should use time-sortable access without relying on timestamp
 alone; `id` is the deterministic tie-breaker.
 
-## 6. Search
+## 7. Search
 
 Do not use an unconstrained full-collection regular expression for Lead search.
 Use database-supported text/search indexing or a normalized bounded search
 projection. Search results must still apply owner authorization before
 pagination and must not expose inaccessible duplicate candidates.
 
-## 7. Verification
+## 8. Verification
 
 Integration tests must verify uniqueness conflicts and query behavior. Before
 release, capture query plans for Agent workload, Admin filters, duplicate

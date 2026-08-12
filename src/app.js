@@ -8,6 +8,7 @@ import rateLimiter from "./middleware/rateLimit.middleware.js";
 import requestContext from "./middleware/requestContext.middleware.js";
 import authenticationRouter from "./modules/authentication/routes/authentication.routes.js";
 import clientRouter from "./modules/clients/routes/client.route.js";
+import companyRouter from "./modules/company/routes/company.route.js";
 import userRouter from "./modules/user/routes/user.route.js";
 import { systemHealth } from "./utils/systemHealth.js";
 import { undeclaredRouteHandler } from "./utils/undeclaredRoute.js";
@@ -52,6 +53,7 @@ app.use(rateLimiter);
 app.get("/health", systemHealth);
 app.use("/api/v1/auth", authenticationRouter);
 app.use("/api/v1/clients", clientRouter);
+app.use("/api/v1/companies", companyRouter);
 app.use("/api/v1", userRouter);
 
 // Feature routes are registered above the fallback handler.
