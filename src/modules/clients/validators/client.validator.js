@@ -13,6 +13,7 @@ import {
   COMPANY_STATUSES,
   COMPANY_TYPES,
 } from "../../company/models/company.model.js";
+import { ClientValidationError } from "../errors/client.error.js";
 
 const contactNumberSchema = Joi.string().trim().min(1).max(30);
 
@@ -38,16 +39,6 @@ export const createClientSchema = Joi.object({
   .or("mobileNumber", "whatsappNumber", "emailAddress")
   .required()
   .unknown(false);
-
-class ClientValidationError extends Error {
-  constructor(details) {
-    super("The client request is invalid.");
-    this.name = "ClientValidationError";
-    this.status = 422;
-    this.code = "VALIDATION_FAILED";
-    this.details = details;
-  }
-}
 
 const requiredContactNumberSchema = Joi.string().trim().min(1).max(30).required();
 const requiredEmailSchema = Joi.string()
@@ -225,6 +216,56 @@ export const validateClientId = (req, _res, next) => {
   return next();
 };
 
+const updateClientSchema = Joi.object({
+  name: Joi.string().trim().min(2).max(200),
+  emiratesIdNumber: Joi.string().trim().min(1).max(30),
+  emailAddress: Joi.string()
+    .trim()
+    .lowercase()
+    .email({ tlds: { allow: false } })
+    .max(254),
+  mobileNumber: contactNumberSchema,
+  whatsappNumber: contactNumberSchema,
+  clientType: Joi.string().valid(...CLIENT_TYPES),
+  nationality: Joi.string().trim().min(1).max(120),
+  passportNumber: Joi.string().trim().min(1).max(30),
+  address: Joi.string().trim().min(1).max(500).allow(null),
+  preferredCommunicationMethod: Joi.string().valid(
+    ...PREFERRED_COMMUNICATION_METHODS
+  ),
+  clientStatus: Joi.string().valid(...CLIENT_STATUSES),
+})
+  .min(1)
+  .required()
+  .unknown(false);
+
+export const validateUpdateClient = (req, _res, next) => {
+  const paramsResult = clientIdSchema.validate(req.params, {
+    abortEarly: false,
+    stripUnknown: false,
+  });
+  const bodyResult = updateClientSchema.validate(req.body, {
+    abortEarly: false,
+    stripUnknown: false,
+  });
+  const validationDetails = [
+    ...(paramsResult.error?.details ?? []),
+    ...(bodyResult.error?.details ?? []),
+  ];
+
+  if (validationDetails.length) {
+    const details = validationDetails.map((detail) => ({
+      field: detail.path.join(".") || "body",
+      issue: detail.message,
+    }));
+    return next(new ClientValidationError(details));
+  }
+
+  req.validatedParams = paramsResult.value;
+  req.validatedBody = bodyResult.value;
+  return next();
+};
+
 const clientServiceParamsSchema = Joi.object({
   clientId: Joi.string().trim().min(1).max(128).required(),
   serviceId: Joi.string().trim().hex().length(24).required(),
@@ -247,6 +288,89 @@ export const validateGetClientService = (req, _res, next) => {
   }
 
   req.validatedParams = value;
+  return next();
+};
+
+const clientServicesParamsSchema = Joi.object({
+  clientMongoId: Joi.string().trim().hex().length(24).required(),
+})
+  .required()
+  .unknown(false);
+
+const clientServicesQuerySchema = Joi.object({
+  page: Joi.number().integer().min(1).default(1),
+  limit: Joi.number().integer().min(1).max(100).default(25),
+})
+  .required()
+  .unknown(false);
+
+export const validateListClientServices = (req, _res, next) => {
+  const paramsResult = clientServicesParamsSchema.validate(req.params, {
+    abortEarly: false,
+    stripUnknown: false,
+  });
+  const queryResult = clientServicesQuerySchema.validate(req.query, {
+    abortEarly: false,
+    stripUnknown: false,
+  });
+  const validationDetails = [
+    ...(paramsResult.error?.details ?? []),
+    ...(queryResult.error?.details ?? []),
+  ];
+
+  if (validationDetails.length) {
+    const details = validationDetails.map((detail) => ({
+      field: detail.path.join(".") || "request",
+      issue: detail.message,
+    }));
+    return next(new ClientValidationError(details));
+  }
+
+  req.validatedParams = paramsResult.value;
+  req.validatedQuery = queryResult.value;
+  return next();
+};
+
+const editClientServiceParamsSchema = Joi.object({
+  clientMongoId: Joi.string().trim().hex().length(24).required(),
+  serviceId: Joi.string().trim().hex().length(24).required(),
+})
+  .required()
+  .unknown(false);
+
+const editClientServiceBodySchema = Joi.object({
+  category: Joi.string().valid(...SERVICE_CATEGORIES),
+  status: Joi.string().valid(...SERVICE_STATUSES),
+  detail: Joi.object().min(1).unknown(true),
+})
+  .min(1)
+  .required()
+  .unknown(false);
+
+export const validateEditClientService = (req, _res, next) => {
+  const paramsResult = editClientServiceParamsSchema.validate(req.params, {
+    abortEarly: false,
+    stripUnknown: false,
+  });
+  const bodyResult = editClientServiceBodySchema.validate(req.body, {
+    abortEarly: false,
+    stripUnknown: false,
+  });
+  const validationDetails = [
+    ...(paramsResult.error?.details ?? []),
+    ...(bodyResult.error?.details ?? []),
+  ];
+
+  if (validationDetails.length) {
+    const details = validationDetails.map((detail) => ({
+      field: detail.path.join(".") || "body",
+      issue: detail.message,
+    }));
+    return next(new ClientValidationError(details));
+  }
+
+  req.validatedParams = paramsResult.value;
+  req.validatedBody = bodyResult.value;
   return next();
 };
 

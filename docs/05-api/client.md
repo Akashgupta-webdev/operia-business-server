@@ -208,7 +208,173 @@ contains:
 
 An empty result returns `200` with an empty `data` array.
 
-## 7. Errors
+## 7. List Services Used by a Client
+
+`GET /api/v1/clients/{clientMongoId}/services?page={page}&limit={limit}`
+
+Only an active User with the `ADMIN` role may call this endpoint.
+
+| Input | Requirement |
+| --- | --- |
+| `clientMongoId` path parameter | Required 24-character hexadecimal Client MongoDB `_id` |
+| `page` query parameter | Optional positive integer; defaults to `1` |
+| `limit` query parameter | Optional integer from `1` to `100`; defaults to `25` |
+
+Services are sorted by newest creation time first, with Service `_id` as the
+deterministic tie-breaker. Each Service is returned with `id` instead of its
+MongoDB `_id`. Its `company` field contains the complete associated Company
+or `null` for an individual Service. Its `payment` field contains the latest
+associated Payment by `paymentDate`, or `null` when no Payment exists. Company
+and Payment records are loaded in batches for the current page. A known Client
+with no Services returns `200` with an empty `data` array.
+
+```json
+{
+  "data": [
+    {
+      "id": "66be92b95620ed5522c5107f",
+      "client": "66be91f75620ed5522c5107e",
+      "company": {
+        "id": "66be920d5620ed5522c51080",
+        "client": "66be91f75620ed5522c5107e",
+        "companyId": "comp-1001",
+        "companyName": "Example Company",
+        "companyType": "MAINLAND",
+        "companyStatus": "ACTIVE"
+      },
+      "category": "VAT_REGISTRATION",
+      "status": "NOT_STARTED",
+      "detail": { "applicationType": "New" },
+      "payment": {
+        "id": "66be93225620ed5522c51081",
+        "service": "66be92b95620ed5522c5107f",
+        "company": "66be920d5620ed5522c51080",
+        "governmentFee": { "$numberDecimal": "100.00" },
+        "serviceFee": { "$numberDecimal": "50.00" },
+        "totalAmount": { "$numberDecimal": "150.00" },
+        "amountReceived": { "$numberDecimal": "150.00" },
+        "paymentMethod": "CARD",
+        "paymentDate": "2026-08-15T10:30:00.000Z",
+        "paymentStatus": "PAID",
+        "version": 0
+      },
+      "version": 0,
+      "createdAt": "2026-08-15T10:30:00.000Z",
+      "updatedAt": "2026-08-15T10:30:00.000Z"
+    }
+  ],
+  "page": {
+    "page": 1,
+    "limit": 25,
+    "total": 1,
+    "totalPages": 1
+  },
+  "meta": { "correlationId": "opaque-correlation-id" }
+}
+```
+
+An unknown Client MongoDB `_id` returns `404 CLIENT_NOT_FOUND`.
+
+## 8. Edit a Client Service
+
+`PATCH /api/v1/clients/{clientMongoId}/services/{serviceId}`
+
+Only an active User with the `ADMIN` role may call this endpoint.
+
+| Input | Requirement |
+| --- | --- |
+| `clientMongoId` path parameter | Required 24-character hexadecimal Client MongoDB `_id` |
+| `serviceId` path parameter | Required 24-character hexadecimal Service MongoDB `_id` |
+| `category` body field | Optional approved Service category |
+| `status` body field | Optional: `NOT_STARTED`, `IN_PROGRESS`, `SUBMITTED`, or `COMPLETE` |
+| `detail` body field | Optional non-empty dynamic object |
+
+The JSON body must contain at least one editable field. Unknown fields are
+rejected. The `client`, `company`, identifiers, timestamps, and `version`
+cannot be edited through this endpoint. When `detail` is supplied, it replaces
+the complete existing dynamic detail object; it is not merged key by key.
+
+The Service must belong to the Client identified by `clientMongoId`. A
+successful update returns `200 OK`, the updated Service in the standard
+single-resource envelope, and an `ETag` containing the updated version.
+
+```json
+{
+  "data": {
+    "id": "66be92b95620ed5522c5107f",
+    "client": "66be91f75620ed5522c5107e",
+    "category": "VAT_REGISTRATION",
+    "status": "IN_PROGRESS",
+    "detail": {
+      "applicationType": "New",
+      "submissionReference": "VAT-1001"
+    },
+    "version": 1,
+    "createdAt": "2026-08-15T10:30:00.000Z",
+    "updatedAt": "2026-08-15T11:30:00.000Z"
+  },
+  "meta": { "correlationId": "opaque-correlation-id" }
+}
+```
+
+An unknown Client returns `404 CLIENT_NOT_FOUND`. An unknown Service, or a
+Service that does not belong to the Client, returns
+`404 CLIENT_SERVICE_NOT_FOUND`.
+
+## 9. Update Client
+
+`PATCH /api/v1/clients/{clientId}`
+
+Only an active User with the `ADMIN` role may call this endpoint. `clientId`
+is the public Client identifier, not the Client MongoDB `_id`.
+
+The JSON body is a partial object and must contain at least one of these
+allow-listed fields:
+
+| Field | Requirement when supplied |
+| --- | --- |
+| `name` | String from 2 to 200 characters |
+| `emiratesIdNumber` | Non-empty string up to 30 characters |
+| `emailAddress` | Valid email address up to 254 characters |
+| `mobileNumber` | Non-empty string up to 30 characters |
+| `whatsappNumber` | Non-empty string up to 30 characters |
+| `clientType` | `INDIVIDUAL` or `COMPANY` |
+| `nationality` | Non-empty string up to 120 characters |
+| `passportNumber` | Non-empty string up to 30 characters |
+| `address` | `null` or a non-empty string up to 500 characters |
+| `preferredCommunicationMethod` | `EMAIL`, `WHATSAPP`, or `CALL` |
+| `clientStatus` | `ACTIVE`, `INACTIVE`, `PROSPECT`, or `ARCHIVED` |
+
+The request body is not wrapped in a `data` property. Unknown fields,
+including `clientId`, `_id`, `notes`, `version`, and timestamps, are rejected.
+The Client must retain at least one mobile number, WhatsApp number, or email
+address after the update.
+
+Successful updates return `200 OK`, the updated Client data, and an `ETag`
+containing the updated version.
+
+```json
+{
+  "data": {
+    "name": "Adesh Singh",
+    "emiratesIdNumber": "PAP-2027-2019",
+    "emailAddress": "adeshsingh@gmail.com",
+    "mobileNumber": "971501234567",
+    "whatsappNumber": "971501234567",
+    "clientType": "INDIVIDUAL",
+    "nationality": "UAE",
+    "passportNumber": "PAP-2027",
+    "address": null,
+    "preferredCommunicationMethod": "CALL",
+    "clientStatus": "ACTIVE"
+  },
+  "meta": { "correlationId": "opaque-correlation-id" }
+}
+```
+
+An unknown public Client identifier returns `404 CLIENT_NOT_FOUND`.
+
+## 10. Errors
 
 - `401 AUTHENTICATION_REQUIRED` when no valid session is available.
 - `403 FORBIDDEN` when the authenticated User is not an Admin.

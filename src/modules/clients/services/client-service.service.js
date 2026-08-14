@@ -81,9 +81,12 @@ const toRepresentation = (record) => {
     return null;
   }
 
+  const source = typeof record.toObject === "function"
+    ? record.toObject({ flattenMaps: true })
+    : record;
   const representation = {
-    ...record,
-    id: record._id.toString(),
+    ...source,
+    id: source._id.toString(),
   };
   delete representation._id;
   return representation;
@@ -136,4 +139,106 @@ export const getClientService = async (clientId, serviceId) => {
     payment: toRepresentation(payment),
     reminder: toRepresentation(reminder),
   };
+};
+
+export const listServicesByClientMongoId = async (
+  clientMongoId,
+  { page, limit }
+) => {
+  const clientExists = await Client.exists({ _id: clientMongoId });
+
+  if (!clientExists) {
+    throw new ClientNotFoundError();
+  }
+
+  const filter = { client: clientMongoId };
+  const skip = (page - 1) * limit;
+  const [services, total] = await Promise.all([
+    Service.find(filter)
+      .sort({ createdAt: -1, _id: 1 })
+      .skip(skip)
+      .limit(limit)
+      .lean()
+      .exec(),
+    Service.countDocuments(filter).exec(),
+  ]);
+  const serviceIds = services.map(({ _id }) => _id);
+  const companyIds = [
+    ...new Set(
+      services
+        .map(({ company }) => company?.toString())
+        .filter(Boolean)
+    ),
+  ];
+  const [companies, payments] = await Promise.all([
+    companyIds.length
+      ? Company.find({
+          _id: { $in: companyIds },
+          client: clientMongoId,
+        })
+          .lean()
+          .exec()
+      : Promise.resolve([]),
+    serviceIds.length
+      ? Payment.find({ service: { $in: serviceIds } })
+          .sort({ paymentDate: -1, _id: 1 })
+          .lean()
+          .exec()
+      : Promise.resolve([]),
+  ]);
+  const companyById = new Map(
+    companies.map((company) => [company._id.toString(), company])
+  );
+  const latestPaymentByServiceId = new Map();
+
+  for (const payment of payments) {
+    const paymentServiceId = payment.service.toString();
+    if (!latestPaymentByServiceId.has(paymentServiceId)) {
+      latestPaymentByServiceId.set(paymentServiceId, payment);
+    }
+  }
+
+  return {
+    services: services.map((service) => ({
+      ...toRepresentation(service),
+      company: service.company
+        ? toRepresentation(companyById.get(service.company.toString()))
+        : null,
+      payment: toRepresentation(
+        latestPaymentByServiceId.get(service._id.toString())
+      ),
+    })),
+    page: {
+      page,
+      limit,
+      total,
+      totalPages: total === 0 ? 0 : Math.ceil(total / limit),
+    },
+  };
+};
+
+export const editServiceByClientMongoId = async (
+  clientMongoId,
+  serviceId,
+  changes
+) => {
+  const clientExists = await Client.exists({ _id: clientMongoId });
+
+  if (!clientExists) {
+    throw new ClientNotFoundError();
+  }
+
+  const service = await Service.findOne({
+    _id: serviceId,
+    client: clientMongoId,
+  }).exec();
+
+  if (!service) {
+    throw new ClientServiceNotFoundError();
+  }
+
+  service.set(changes);
+  await service.save();
+
+  return toRepresentation(service);
 };

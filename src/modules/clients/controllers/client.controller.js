@@ -3,15 +3,20 @@ import {
   deleteUploadedDocuments,
   uploadDocuments,
 } from "../../common/services/document-upload.service.js";
-import { ClientNotFoundError } from "../errors/client.error.js";
+import {
+  ClientNotFoundError,
+  ClientValidationError,
+} from "../errors/client.error.js";
 import Client from "../models/client.model.js";
 import {
   createClientWithService,
+  editServiceByClientMongoId,
   getClientService,
+  listServicesByClientMongoId,
 } from "../services/client-service.service.js";
 
 const CLIENT_SUMMARY_FIELDS =
-  "_id clientId name emiratesIdNumber emailAddress mobileNumber whatsappNumber clientStatus";
+  "_id clientType clientId name emiratesIdNumber emailAddress mobileNumber whatsappNumber nationality passportNumber address preferredCommunicationMethod clientStatus";
 
 const toClientSummary = (client) => ({
   _id: client._id,
@@ -21,8 +26,18 @@ const toClientSummary = (client) => ({
   emailAddress: client.emailAddress ?? null,
   mobileNumber: client.mobileNumber ?? null,
   whatsappNumber: client.whatsappNumber ?? null,
+  clientType: client.clientType ?? null,
+  nationality: client.nationality ?? null,
+  passportNumber: client.passportNumber ?? null,
+  address: client.address ?? null,
+  preferredCommunicationMethod: client.preferredCommunicationMethod ?? null,
   clientStatus: client.clientStatus,
 });
+
+const toUpdatedClient = (client) => {
+  const { _id, clientId, ...editableFields } = toClientSummary(client);
+  return editableFields;
+};
 
 const escapeRegularExpression = (value) =>
   value.replace(/[.*+?^{}$()|[\]\\]/g, "\\$&");
@@ -131,6 +146,65 @@ export const getCompleteClientService = async (req, res, next) => {
   }
 };
 
+export const listClientServices = async (req, res, next) => {
+  try {
+    const { clientMongoId } = req.validatedParams;
+    const result = await listServicesByClientMongoId(
+      clientMongoId,
+      req.validatedQuery
+    );
+
+    return res.status(200).json({
+      data: result.services,
+      page: result.page,
+      meta: { correlationId: req.correlationId },
+    });
+  } catch (error) {
+    logger.error("Client Service list lookup failed.", {
+      errorName: error.name,
+      errorCode: error.code,
+      clientMongoId: req.params.clientMongoId,
+      actorId: req.user?.id,
+      correlationId: req.correlationId,
+    });
+    return next(error);
+  }
+};
+
+export const editClientService = async (req, res, next) => {
+  try {
+    const { clientMongoId, serviceId } = req.validatedParams;
+    const service = await editServiceByClientMongoId(
+      clientMongoId,
+      serviceId,
+      req.validatedBody
+    );
+
+    logger.info("Client Service updated.", {
+      clientMongoId,
+      serviceId,
+      actorId: req.user.id,
+      correlationId: req.correlationId,
+    });
+
+    res.set("ETag", `"${service.version}"`);
+    return res.status(200).json({
+      data: service,
+      meta: { correlationId: req.correlationId },
+    });
+  } catch (error) {
+    logger.error("Client Service update failed.", {
+      errorName: error.name,
+      errorCode: error.code,
+      clientMongoId: req.params.clientMongoId,
+      serviceId: req.params.serviceId,
+      actorId: req.user?.id,
+      correlationId: req.correlationId,
+    });
+    return next(error);
+  }
+};
+
 export const getClient = async (req, res, next) => {
   try {
     const client = await Client.findOne({ clientId: req.params.clientId })
@@ -155,6 +229,50 @@ export const getClient = async (req, res, next) => {
       correlationId: req.correlationId,
     });
     return next(error);
+  }
+};
+
+export const updateClient = async (req, res, next) => {
+  try {
+    const { clientId } = req.validatedParams;
+    const client = await Client.findOne({ clientId }).exec();
+
+    if (!client) {
+      throw new ClientNotFoundError();
+    }
+
+    client.set(req.validatedBody);
+    await client.save();
+
+    logger.info("Client updated.", {
+      clientId,
+      actorId: req.user.id,
+      correlationId: req.correlationId,
+    });
+
+    res.set("ETag", `"${client.version}"`);
+    return res.status(200).json({
+      data: toUpdatedClient(client),
+      meta: { correlationId: req.correlationId },
+    });
+  } catch (error) {
+    const responseError = error.name === "ValidationError"
+      ? new ClientValidationError(
+          Object.entries(error.errors).map(([field, validationError]) => ({
+            field,
+            issue: validationError.message,
+          }))
+        )
+      : error;
+
+    logger.error("Client update failed.", {
+      errorName: responseError.name,
+      errorCode: responseError.code,
+      clientId: req.params.clientId,
+      actorId: req.user?.id,
+      correlationId: req.correlationId,
+    });
+    return next(responseError);
   }
 };
 

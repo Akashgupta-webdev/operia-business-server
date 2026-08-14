@@ -15,3 +15,13 @@ export class ClientServiceNotFoundError extends Error {
     this.code = "CLIENT_SERVICE_NOT_FOUND";
   }
 }
+
+export class ClientValidationError extends Error {
+  constructor(details) {
+    super("The client request is invalid.");
+    this.name = "ClientValidationError";
+    this.status = 422;
+    this.code = "VALIDATION_FAILED";
+    this.details = details;
+  }
+}

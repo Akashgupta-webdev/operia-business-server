@@ -4,17 +4,23 @@ import { authorize } from "../../../middleware/authorize.middleware.js";
 import {
   createCompleteClientService,
   createClient,
+  editClientService,
   getClient,
   getCompleteClientService,
+  listClientServices,
   listClients,
+  updateClient,
 } from "../controllers/client.controller.js";
 import { uploadClientServiceDocuments } from "../middleware/client-service-upload.middleware.js";
 import {
   validateClientId,
   validateCreateClient,
   validateCreateClientWithService,
+  validateEditClientService,
   validateGetClientService,
+  validateListClientServices,
   validateListClientsQuery,
+  validateUpdateClient,
 } from "../validators/client.validator.js";
 
 const clientRouter = Router();
@@ -32,6 +38,18 @@ clientRouter.get(
   validateGetClientService,
   getCompleteClientService
 );
+clientRouter.get(
+  "/:clientMongoId/services",
+  authorize("ADMIN"),
+  validateListClientServices,
+  listClientServices
+);
+clientRouter.patch(
+  "/:clientMongoId/services/:serviceId",
+  authorize("ADMIN"),
+  validateEditClientService,
+  editClientService
+);
 
 clientRouter.post(
   "/",
@@ -44,6 +62,12 @@ clientRouter.get(
   authorize("ADMIN"),
   validateListClientsQuery,
   listClients
+);
+clientRouter.patch(
+  "/:clientId",
+  authorize("ADMIN"),
+  validateUpdateClient,
+  updateClient
 );
 clientRouter.get(
   "/:clientId",

@@ -63,6 +63,7 @@ const paymentSchema = new Schema(
 );
 
 paymentSchema.index({ company: 1, service: 1, paymentDate: -1, _id: 1 });
+paymentSchema.index({ service: 1, paymentDate: -1, _id: 1 });
 
 const Payment = models.Payment || model("Payment", paymentSchema);
 

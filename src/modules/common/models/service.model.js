@@ -91,6 +91,7 @@ const serviceSchema = new Schema(
 );
 
 serviceSchema.index({ client: 1, company: 1, status: 1, createdAt: -1, _id: 1 });
+serviceSchema.index({ client: 1, createdAt: -1, _id: 1 });
 
 const Service = models.Service || model("Service", serviceSchema);
 

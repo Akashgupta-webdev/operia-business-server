@@ -71,8 +71,10 @@ pagination and must not expose inaccessible duplicate candidates.
 | Record | Ordered fields | Supports |
 | --- | --- | --- |
 | Service | `client`, `company`, `status`, `createdAt`, `_id` | Stable status-filtered Service history for one Client Company |
+| Service | `client`, `createdAt`, `_id` | Stable Service history for one Client |
 | Document | `company`, `service`, `createdAt`, `_id` | Stable Document history for one Company Service |
 | Payment | `company`, `service`, `paymentDate`, `_id` | Stable Payment history for one Company Service |
+| Payment | `service`, `paymentDate`, `_id` | Latest Payment lookup for Services across a Client page |
 | Reminder | `company`, `service`, `dueDate`, `_id` | Upcoming due-date lookup for one Company Service |
 
 ## 9. Verification

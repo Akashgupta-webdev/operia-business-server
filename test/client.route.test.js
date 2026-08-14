@@ -1,8 +1,12 @@
 import assert from "node:assert/strict";
 import { after, before, test } from "node:test";
+import mongoose from "mongoose";
 
 import app from "../src/app.js";
 import Client from "../src/modules/clients/models/client.model.js";
+import Payment from "../src/modules/common/models/payment.model.js";
+import Service from "../src/modules/common/models/service.model.js";
+import Company from "../src/modules/company/models/company.model.js";
 import { issueTokenPair } from "../src/modules/authentication/services/token.service.js";
 import User from "../src/modules/user/models/user.model.js";
 
@@ -123,6 +127,338 @@ test("validates Client Service lookup parameters", async () => {
     assert.equal(body.error.details[0].field, "serviceId");
   } finally {
     User.findById = originalFindById;
+  }
+});
+
+test("lists paginated Services using the Client MongoDB _id", async () => {
+  const originalUserFindById = User.findById;
+  const originalClientExists = Client.exists;
+  const originalServiceFind = Service.find;
+  const originalServiceCountDocuments = Service.countDocuments;
+  const originalCompanyFind = Company.find;
+  const originalPaymentFind = Payment.find;
+  const clientMongoId = new mongoose.Types.ObjectId();
+  const serviceMongoId = new mongoose.Types.ObjectId();
+  const companyMongoId = new mongoose.Types.ObjectId();
+  const latestPaymentMongoId = new mongoose.Types.ObjectId();
+  const olderPaymentMongoId = new mongoose.Types.ObjectId();
+  let serviceFilter;
+  let serviceSort;
+  let companyFilter;
+  let paymentFilter;
+  let paymentSort;
+  let skipped;
+  let limited;
+
+  User.findById = () =>
+    queryReturning({
+      _id: { toString: () => "user-123" },
+      name: "Admin Name",
+      email: "admin@example.test",
+      role: "ADMIN",
+      status: "ACTIVE",
+      version: 0,
+    });
+  Client.exists = async (filter) => {
+    assert.deepEqual(filter, { _id: clientMongoId.toString() });
+    return { _id: clientMongoId };
+  };
+  Service.find = (filter) => {
+    serviceFilter = filter;
+    return {
+      sort(value) {
+        serviceSort = value;
+        return this;
+      },
+      skip(value) {
+        skipped = value;
+        return this;
+      },
+      limit(value) {
+        limited = value;
+        return this;
+      },
+      lean() {
+        return this;
+      },
+      async exec() {
+        return [
+          {
+            _id: serviceMongoId,
+            client: clientMongoId,
+            company: companyMongoId,
+            category: "VAT_REGISTRATION",
+            status: "NOT_STARTED",
+            detail: { applicationType: "New" },
+            version: 0,
+          },
+        ];
+      },
+    };
+  };
+  Service.countDocuments = (filter) => {
+    assert.equal(filter, serviceFilter);
+    return queryReturning(3);
+  };
+  Company.find = (filter) => {
+    companyFilter = filter;
+    return {
+      lean() {
+        return this;
+      },
+      async exec() {
+        return [
+          {
+            _id: companyMongoId,
+            client: clientMongoId,
+            companyId: "comp-1001",
+            companyName: "Example Company",
+            companyType: "MAINLAND",
+            companyStatus: "ACTIVE",
+          },
+        ];
+      },
+    };
+  };
+  Payment.find = (filter) => {
+    paymentFilter = filter;
+    return {
+      sort(value) {
+        paymentSort = value;
+        return this;
+      },
+      lean() {
+        return this;
+      },
+      async exec() {
+        return [
+          {
+            _id: latestPaymentMongoId,
+            company: companyMongoId,
+            service: serviceMongoId,
+            totalAmount: "150.00",
+            paymentDate: new Date("2026-08-15T10:30:00.000Z"),
+            paymentStatus: "PAID",
+          },
+          {
+            _id: olderPaymentMongoId,
+            company: companyMongoId,
+            service: serviceMongoId,
+            totalAmount: "100.00",
+            paymentDate: new Date("2026-08-14T10:30:00.000Z"),
+            paymentStatus: "PARTIAL",
+          },
+        ];
+      },
+    };
+  };
+
+  try {
+    const response = await fetch(
+      `${baseUrl}/api/v1/clients/${clientMongoId}/services?page=2&limit=2`,
+      { headers: { Cookie: authenticatedCookie("ADMIN") } }
+    );
+    const body = await response.json();
+
+    assert.equal(response.status, 200);
+    assert.deepEqual(serviceFilter, { client: clientMongoId.toString() });
+    assert.deepEqual(serviceSort, { createdAt: -1, _id: 1 });
+    assert.deepEqual(companyFilter, {
+      _id: { $in: [companyMongoId.toString()] },
+      client: clientMongoId.toString(),
+    });
+    assert.deepEqual(paymentFilter, {
+      service: { $in: [serviceMongoId] },
+    });
+    assert.deepEqual(paymentSort, { paymentDate: -1, _id: 1 });
+    assert.equal(skipped, 2);
+    assert.equal(limited, 2);
+    assert.equal(body.data[0].id, serviceMongoId.toString());
+    assert.equal(body.data[0]._id, undefined);
+    assert.equal(body.data[0].company.id, companyMongoId.toString());
+    assert.equal(body.data[0].company.companyName, "Example Company");
+    assert.equal(body.data[0].payment.id, latestPaymentMongoId.toString());
+    assert.equal(body.data[0].payment.paymentStatus, "PAID");
+    assert.deepEqual(body.page, {
+      page: 2,
+      limit: 2,
+      total: 3,
+      totalPages: 2,
+    });
+  } finally {
+    User.findById = originalUserFindById;
+    Client.exists = originalClientExists;
+    Service.find = originalServiceFind;
+    Service.countDocuments = originalServiceCountDocuments;
+    Company.find = originalCompanyFind;
+    Payment.find = originalPaymentFind;
+  }
+});
+
+test("rejects invalid Client Service list params and query", async () => {
+  const originalFindById = User.findById;
+
+  User.findById = () =>
+    queryReturning({
+      _id: { toString: () => "user-123" },
+      name: "Admin Name",
+      email: "admin@example.test",
+      role: "ADMIN",
+      status: "ACTIVE",
+      version: 0,
+    });
+
+  try {
+    const response = await fetch(
+      `${baseUrl}/api/v1/clients/not-an-object-id/services?page=0&unknown=value`,
+      { headers: { Cookie: authenticatedCookie("ADMIN") } }
+    );
+    const body = await response.json();
+
+    assert.equal(response.status, 422);
+    assert.equal(body.error.code, "VALIDATION_FAILED");
+    assert.deepEqual(
+      [...new Set(body.error.details.map(({ field }) => field))].sort(),
+      ["clientMongoId", "page", "unknown"]
+    );
+  } finally {
+    User.findById = originalFindById;
+  }
+});
+
+test("edits a Service scoped by Client MongoDB _id", async () => {
+  const originalUserFindById = User.findById;
+  const originalClientExists = Client.exists;
+  const originalServiceFindOne = Service.findOne;
+  const clientMongoId = new mongoose.Types.ObjectId();
+  const serviceMongoId = new mongoose.Types.ObjectId();
+  let serviceFilter;
+  let appliedChanges;
+  const serviceDocument = {
+    _id: serviceMongoId,
+    client: clientMongoId,
+    category: "VAT_REGISTRATION",
+    status: "NOT_STARTED",
+    detail: { oldField: "replaced" },
+    version: 0,
+    set(changes) {
+      appliedChanges = changes;
+      Object.assign(this, changes);
+    },
+    async save() {
+      this.version += 1;
+    },
+    toObject() {
+      return {
+        _id: this._id,
+        client: this.client,
+        category: this.category,
+        status: this.status,
+        detail: this.detail,
+        version: this.version,
+      };
+    },
+  };
+
+  User.findById = () =>
+    queryReturning({
+      _id: { toString: () => "user-123" },
+      name: "Admin Name",
+      email: "admin@example.test",
+      role: "ADMIN",
+      status: "ACTIVE",
+      version: 0,
+    });
+  Client.exists = async (filter) => {
+    assert.deepEqual(filter, { _id: clientMongoId.toString() });
+    return { _id: clientMongoId };
+  };
+  Service.findOne = (filter) => {
+    serviceFilter = filter;
+    return queryReturning(serviceDocument);
+  };
+
+  try {
+    const response = await fetch(
+      `${baseUrl}/api/v1/clients/${clientMongoId}/services/${serviceMongoId}`,
+      {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Cookie: authenticatedCookie("ADMIN"),
+        },
+        body: JSON.stringify({
+          status: "IN_PROGRESS",
+          detail: {
+            applicationType: "New",
+            submissionReference: "VAT-1001",
+          },
+        }),
+      }
+    );
+    const body = await response.json();
+
+    assert.equal(response.status, 200);
+    assert.equal(response.headers.get("etag"), '"1"');
+    assert.deepEqual(serviceFilter, {
+      _id: serviceMongoId.toString(),
+      client: clientMongoId.toString(),
+    });
+    assert.deepEqual(appliedChanges, {
+      status: "IN_PROGRESS",
+      detail: {
+        applicationType: "New",
+        submissionReference: "VAT-1001",
+      },
+    });
+    assert.equal(body.data.id, serviceMongoId.toString());
+    assert.equal(body.data.status, "IN_PROGRESS");
+    assert.equal(body.data.detail.oldField, undefined);
+    assert.equal(body.data.detail.submissionReference, "VAT-1001");
+    assert.equal(body.data.version, 1);
+  } finally {
+    User.findById = originalUserFindById;
+    Client.exists = originalClientExists;
+    Service.findOne = originalServiceFindOne;
+  }
+});
+
+test("rejects empty and immutable fields in a Service edit", async () => {
+  const originalUserFindById = User.findById;
+  const clientMongoId = new mongoose.Types.ObjectId();
+  const serviceMongoId = new mongoose.Types.ObjectId();
+
+  User.findById = () =>
+    queryReturning({
+      _id: { toString: () => "user-123" },
+      name: "Admin Name",
+      email: "admin@example.test",
+      role: "ADMIN",
+      status: "ACTIVE",
+      version: 0,
+    });
+
+  try {
+    const response = await fetch(
+      `${baseUrl}/api/v1/clients/${clientMongoId}/services/${serviceMongoId}`,
+      {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Cookie: authenticatedCookie("ADMIN"),
+        },
+        body: JSON.stringify({ client: clientMongoId.toString(), detail: {} }),
+      }
+    );
+    const body = await response.json();
+    const fields = new Set(body.error.details.map(({ field }) => field));
+
+    assert.equal(response.status, 422);
+    assert.equal(body.error.code, "VALIDATION_FAILED");
+    assert.equal(fields.has("client"), true);
+    assert.equal(fields.has("detail"), true);
+  } finally {
+    User.findById = originalUserFindById;
   }
 });
 
@@ -275,6 +611,138 @@ test("enforces required contact and preferred method in the Client model", async
   assert.equal(validClient.clientStatus, "ACTIVE");
 });
 
+test("updates only allow-listed Client fields using the public clientId", async () => {
+  const originalUserFindById = User.findById;
+  const originalClientFindOne = Client.findOne;
+  let lookupFilter;
+  let appliedChanges;
+  const clientDocument = {
+    _id: new mongoose.Types.ObjectId(),
+    clientId: "client-123",
+    name: "Old Name",
+    emiratesIdNumber: "OLD-ID",
+    emailAddress: "old@example.test",
+    mobileNumber: "971500000000",
+    whatsappNumber: "971500000000",
+    clientType: "INDIVIDUAL",
+    nationality: "UAE",
+    passportNumber: "OLD-PASSPORT",
+    address: "Old address",
+    preferredCommunicationMethod: "EMAIL",
+    clientStatus: "ACTIVE",
+    version: 0,
+    set(changes) {
+      appliedChanges = changes;
+      Object.assign(this, changes);
+    },
+    async save() {
+      this.version += 1;
+    },
+  };
+
+  User.findById = () =>
+    queryReturning({
+      _id: { toString: () => "user-123" },
+      name: "Admin Name",
+      email: "admin@example.test",
+      role: "ADMIN",
+      status: "ACTIVE",
+      version: 0,
+    });
+  Client.findOne = (filter) => {
+    lookupFilter = filter;
+    return queryReturning(clientDocument);
+  };
+
+  const update = {
+    name: "Adesh Singh",
+    emiratesIdNumber: "PAP-2027-2019",
+    emailAddress: "ADESHsingh@GMAIL.COM",
+    mobileNumber: "971501234567",
+    whatsappNumber: "971501234567",
+    clientType: "INDIVIDUAL",
+    nationality: "UAE",
+    passportNumber: "PAP-2027",
+    address: null,
+    preferredCommunicationMethod: "CALL",
+    clientStatus: "ACTIVE",
+  };
+
+  try {
+    const response = await fetch(`${baseUrl}/api/v1/clients/client-123`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        Cookie: authenticatedCookie("ADMIN"),
+      },
+      body: JSON.stringify(update),
+    });
+    const body = await response.json();
+
+    assert.equal(response.status, 200);
+    assert.equal(response.headers.get("etag"), '"1"');
+    assert.deepEqual(lookupFilter, { clientId: "client-123" });
+    assert.equal(appliedChanges.emailAddress, "adeshsingh@gmail.com");
+    assert.deepEqual(body.data, {
+      ...update,
+      emailAddress: "adeshsingh@gmail.com",
+    });
+    assert.equal(body.data.clientId, undefined);
+    assert.equal(body.data.notes, undefined);
+  } finally {
+    User.findById = originalUserFindById;
+    Client.findOne = originalClientFindOne;
+  }
+});
+
+test("rejects empty and non-allow-listed Client updates", async () => {
+  const originalUserFindById = User.findById;
+
+  User.findById = () =>
+    queryReturning({
+      _id: { toString: () => "user-123" },
+      name: "Admin Name",
+      email: "admin@example.test",
+      role: "ADMIN",
+      status: "ACTIVE",
+      version: 0,
+    });
+
+  try {
+    const [emptyResponse, unknownResponse] = await Promise.all([
+      fetch(`${baseUrl}/api/v1/clients/client-123`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Cookie: authenticatedCookie("ADMIN"),
+        },
+        body: JSON.stringify({}),
+      }),
+      fetch(`${baseUrl}/api/v1/clients/client-123`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Cookie: authenticatedCookie("ADMIN"),
+        },
+        body: JSON.stringify({ notes: "Not editable" }),
+      }),
+    ]);
+    const emptyBody = await emptyResponse.json();
+    const unknownBody = await unknownResponse.json();
+
+    assert.equal(emptyResponse.status, 422);
+    assert.equal(emptyBody.error.code, "VALIDATION_FAILED");
+    assert.equal(unknownResponse.status, 422);
+    assert.equal(unknownBody.error.code, "VALIDATION_FAILED");
+    assert.equal(
+      unknownBody.error.details.some(({ field }) => field === "notes"),
+      true
+    );
+  } finally {
+    User.findById = originalUserFindById;
+  }
+});
+
 test("returns only the requested client summary fields for an Admin", async () => {
   const originalUserFindById = User.findById;
   const originalClientFindOne = Client.findOne;
@@ -308,7 +776,7 @@ test("returns only the requested client summary fields for an Admin", async () =
           emailAddress: "client@example.test",
           mobileNumber: "+971501234567",
           clientStatus: "ACTIVE",
-          passportNumber: "NOT-EXPOSED",
+          passportNumber: "P123456",
           notes: "NOT-EXPOSED",
         };
       },
@@ -334,9 +802,13 @@ test("returns only the requested client summary fields for an Admin", async () =
       emailAddress: "client@example.test",
       mobileNumber: "+971501234567",
       whatsappNumber: null,
+      clientType: null,
+      nationality: null,
+      passportNumber: "P123456",
+      address: null,
+      preferredCommunicationMethod: null,
       clientStatus: "ACTIVE",
     });
-    assert.equal(body.data.passportNumber, undefined);
     assert.equal(body.data.notes, undefined);
   } finally {
     User.findById = originalUserFindById;
@@ -436,7 +908,7 @@ test("returns a searched and paginated client list for an Admin", async () => {
             name: "John. Smith",
             emailAddress: "john@example.test",
             clientStatus: "ACTIVE",
-            passportNumber: "NOT-EXPOSED",
+            passportNumber: "P123456",
           },
         ];
       },
@@ -479,10 +951,14 @@ test("returns a searched and paginated client list for an Admin", async () => {
         emailAddress: "john@example.test",
         mobileNumber: null,
         whatsappNumber: null,
+        clientType: null,
+        nationality: null,
+        passportNumber: "P123456",
+        address: null,
+        preferredCommunicationMethod: null,
         clientStatus: "ACTIVE",
       },
     ]);
-    assert.equal(body.data[0].passportNumber, undefined);
   } finally {
     User.findById = originalUserFindById;
     Client.find = originalClientFind;
