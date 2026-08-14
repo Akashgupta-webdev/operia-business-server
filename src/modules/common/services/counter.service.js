@@ -18,7 +18,7 @@ const normalizeCounterName = (name) => {
   return normalizedName;
 };
 
-export const createCountId = async (name) => {
+export const createCountId = async (name, session) => {
   const normalizedName = normalizeCounterName(name);
   const counter = await Counter.findOneAndUpdate(
     { name: normalizedName },
@@ -28,6 +28,7 @@ export const createCountId = async (name) => {
       upsert: true,
       setDefaultsOnInsert: true,
       runValidators: true,
+      ...(session ? { session } : {}),
     }
   ).exec();
 

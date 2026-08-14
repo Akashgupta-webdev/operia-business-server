@@ -1,6 +1,14 @@
 import logger from "../../../logger/index.js";
+import {
+  deleteUploadedDocuments,
+  uploadDocuments,
+} from "../../common/services/document-upload.service.js";
 import { ClientNotFoundError } from "../errors/client.error.js";
 import Client from "../models/client.model.js";
+import {
+  createClientWithService,
+  getClientService,
+} from "../services/client-service.service.js";
 
 const CLIENT_SUMMARY_FIELDS =
   "_id clientId name emiratesIdNumber emailAddress mobileNumber whatsappNumber clientStatus";
@@ -60,6 +68,62 @@ export const createClient = async (req, res, next) => {
     logger.error("Client creation failed.", {
       errorName: error.name,
       errorCode: error.code,
+      actorId: req.user?.id,
+      correlationId: req.correlationId,
+    });
+    return next(error);
+  }
+};
+
+export const createCompleteClientService = async (req, res, next) => {
+  let uploads = [];
+
+  try {
+    uploads = await uploadDocuments(req.files ?? [], req.correlationId);
+    const result = await createClientWithService(req.validatedPayload, uploads);
+
+    logger.info("Client Service package created.", {
+      clientId: result.client.clientId,
+      companyId: result.company?.companyId,
+      serviceId: result.service._id.toString(),
+      documentCount: result.documents.length,
+      actorId: req.user.id,
+      correlationId: req.correlationId,
+    });
+
+    res.location(`/api/v1/clients/${result.client.clientId}`);
+    res.set("ETag", `"${result.client.version}"`);
+    return res.status(201).json({
+      data: result,
+      meta: { correlationId: req.correlationId },
+    });
+  } catch (error) {
+    await deleteUploadedDocuments(uploads);
+    logger.error("Client Service package creation failed.", {
+      errorName: error.name,
+      errorCode: error.code,
+      actorId: req.user?.id,
+      correlationId: req.correlationId,
+    });
+    return next(error);
+  }
+};
+
+export const getCompleteClientService = async (req, res, next) => {
+  try {
+    const { clientId, serviceId } = req.validatedParams;
+    const result = await getClientService(clientId, serviceId);
+
+    return res.status(200).json({
+      data: result,
+      meta: { correlationId: req.correlationId },
+    });
+  } catch (error) {
+    logger.error("Client Service package lookup failed.", {
+      errorName: error.name,
+      errorCode: error.code,
+      clientId: req.params.clientId,
+      serviceId: req.params.serviceId,
       actorId: req.user?.id,
       correlationId: req.correlationId,
     });

@@ -330,6 +330,72 @@ test("returns paginated companies belonging to a Client", async () => {
   }
 });
 
+test("returns a paginated list of all companies", async () => {
+  const originalFindById = User.findById;
+  const originalFind = Company.find;
+  const originalCountDocuments = Company.countDocuments;
+  let companyFilter;
+  let countFilter;
+  let sortFields;
+  let skipped;
+  let limited;
+
+  mockAuthenticatedUser("ADMIN");
+  Company.find = (filter) => {
+    companyFilter = filter;
+    return {
+      sort(fields) {
+        sortFields = fields;
+        return this;
+      },
+      skip(value) {
+        skipped = value;
+        return this;
+      },
+      limit(value) {
+        limited = value;
+        return this;
+      },
+      lean() {
+        return this;
+      },
+      async exec() {
+        return [];
+      },
+    };
+  };
+  Company.countDocuments = (filter) => {
+    countFilter = filter;
+    return queryReturning(4);
+  };
+
+  try {
+    const response = await fetch(
+      `${baseUrl}/api/v1/companies?page=2&limit=2`,
+      { headers: { Cookie: authenticatedCookie("ADMIN") } }
+    );
+    const body = await response.json();
+
+    assert.equal(response.status, 200);
+    assert.deepEqual(companyFilter, {});
+    assert.deepEqual(countFilter, {});
+    assert.deepEqual(sortFields, { createdAt: -1, companyId: 1 });
+    assert.equal(skipped, 2);
+    assert.equal(limited, 2);
+    assert.deepEqual(body.data, []);
+    assert.deepEqual(body.page, {
+      page: 2,
+      limit: 2,
+      total: 4,
+      totalPages: 2,
+    });
+  } finally {
+    User.findById = originalFindById;
+    Company.find = originalFind;
+    Company.countDocuments = originalCountDocuments;
+  }
+});
+
 test("returns an empty company list for a Client without companies", async () => {
   const originalFindById = User.findById;
   const originalExists = Client.exists;

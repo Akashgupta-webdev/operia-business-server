@@ -83,19 +83,37 @@ const clientIdParamsSchema = Joi.object({
   .required()
   .unknown(false);
 
-const companiesByClientQuerySchema = Joi.object({
+export const listCompaniesQuerySchema = Joi.object({
   page: Joi.number().integer().min(1).default(1),
   limit: Joi.number().integer().min(1).max(100).default(25),
 })
   .required()
   .unknown(false);
 
+export const validateListCompaniesQuery = (req, _res, next) => {
+  const { error, value } = listCompaniesQuerySchema.validate(req.query, {
+    abortEarly: false,
+    stripUnknown: false,
+  });
+
+  if (error) {
+    const details = error.details.map((detail) => ({
+      field: detail.path.join(".") || "query",
+      issue: detail.message,
+    }));
+    return next(new CompanyValidationError(details));
+  }
+
+  req.validatedQuery = value;
+  return next();
+};
+
 export const validateGetCompaniesByClient = (req, _res, next) => {
   const paramsResult = clientIdParamsSchema.validate(req.params, {
     abortEarly: false,
     stripUnknown: false,
   });
-  const queryResult = companiesByClientQuerySchema.validate(req.query, {
+  const queryResult = listCompaniesQuerySchema.validate(req.query, {
     abortEarly: false,
     stripUnknown: false,
   });

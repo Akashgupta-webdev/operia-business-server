@@ -183,7 +183,7 @@ companySchema.pre("validate", async function generateCompanyId() {
     return;
   }
 
-  const count = await createCountId("company");
+  const count = await createCountId("company", this.$session());
   this.companyId = `${COMPANY_ID_PREFIX}${count}`;
 });
 

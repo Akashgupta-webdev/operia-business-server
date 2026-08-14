@@ -60,6 +60,72 @@ test("requires authentication before creating a client", async () => {
   assert.equal(body.error.code, "AUTHENTICATION_REQUIRED");
 });
 
+test("validates the multipart Client Service package", async () => {
+  const originalFindById = User.findById;
+  User.findById = () =>
+    queryReturning({
+      _id: { toString: () => "user-123" },
+      name: "Admin Name",
+      email: "admin@example.test",
+      role: "ADMIN",
+      status: "ACTIVE",
+      version: 0,
+    });
+  const form = new FormData();
+  form.set(
+    "payload",
+    JSON.stringify({
+      client: { clientType: "INDIVIDUAL", name: "Incomplete Client" },
+      service: {},
+    })
+  );
+
+  try {
+    const response = await fetch(`${baseUrl}/api/v1/clients/with-service`, {
+      method: "POST",
+      headers: { Cookie: authenticatedCookie("ADMIN") },
+      body: form,
+    });
+    const body = await response.json();
+    const fields = body.error.details.map(({ field }) => field);
+
+    assert.equal(response.status, 422);
+    assert.equal(body.error.code, "VALIDATION_FAILED");
+    assert.ok(fields.includes("client.mobileNumber"));
+    assert.ok(fields.includes("client.emailAddress"));
+    assert.ok(fields.includes("service.category"));
+  } finally {
+    User.findById = originalFindById;
+  }
+});
+
+test("validates Client Service lookup parameters", async () => {
+  const originalFindById = User.findById;
+  User.findById = () =>
+    queryReturning({
+      _id: { toString: () => "user-123" },
+      name: "Admin Name",
+      email: "admin@example.test",
+      role: "ADMIN",
+      status: "ACTIVE",
+      version: 0,
+    });
+
+  try {
+    const response = await fetch(
+      `${baseUrl}/api/v1/clients/client-1/with-service/not-an-object-id`,
+      { headers: { Cookie: authenticatedCookie("ADMIN") } }
+    );
+    const body = await response.json();
+
+    assert.equal(response.status, 422);
+    assert.equal(body.error.code, "VALIDATION_FAILED");
+    assert.equal(body.error.details[0].field, "serviceId");
+  } finally {
+    User.findById = originalFindById;
+  }
+});
+
 test("allows only Admin users to create clients", async () => {
   const originalFindById = User.findById;
   User.findById = () =>

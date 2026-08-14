@@ -17,6 +17,15 @@ erDiagram
     LEAD ||--o{ NOTIFICATION : concerns
     USER ||--o{ AUDIT_LOG : acts
     LEAD ||--o{ AUDIT_LOG : audited_as_target
+    CLIENT ||--o{ COMPANY : owns
+    CLIENT ||--o{ SERVICE : requests
+    COMPANY o|--o{ SERVICE : receives
+    COMPANY o|--o{ DOCUMENT : has
+    COMPANY o|--o{ PAYMENT : has
+    COMPANY o|--o{ REMINDER : has
+    SERVICE ||--o{ DOCUMENT : supports
+    SERVICE ||--o{ PAYMENT : records
+    SERVICE ||--o{ REMINDER : schedules
 ```
 
 ## 2. Cardinality and Ownership
@@ -28,6 +37,10 @@ erDiagram
 - A User may be deactivated but historical references to that User remain.
 - A Notification belongs to one recipient and concerns one Lead in Release 1.
 - Audit targets are polymorphic: Lead, Follow-up, Note, Notification, or User.
+- A Client may own many Companies, and every Company belongs to one Client.
+- A Client may request many Services, and each Service belongs to one Client.
+  A Service and its Documents, Payments, and Reminders reference a Company
+  only when the Client Service package includes one.
 
 ## 3. Aggregate Boundaries
 

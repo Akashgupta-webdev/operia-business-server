@@ -149,6 +149,8 @@ The following persist atomically:
 - Follow-up completion, optional next Follow-up, Lead next-action update,
   Timeline, and Audit;
 - Note creation and Audit.
+- complete Client Service creation, including its optional Company, Document,
+  Payment, and Reminder records.
 
 Physical retention, encryption, backup, and recovery settings belong to the
 deployment/security design.
@@ -188,3 +190,98 @@ incrementing sequence value. Public resource identifiers remain opaque.
 Allocating a value atomically increments the named counter. Separate normalized
 names have independent sequences, and counter values must not be reused after
 allocation.
+
+## 13. Services
+
+Services are Client- and Company-scoped records categorized by the work being
+performed. Their dynamic detail shape stores supplied service facts. The
+status vocabulary records progress but does not by itself authorize a status
+transition or generic API update.
+
+| Field | Meaning / constraint |
+| --- | --- |
+| `company` | Optional Company MongoDB `_id`; omitted for an individual Client |
+| `client` | Required reference to the related Client MongoDB `_id` |
+| `category` | Required category from the approved Service category vocabulary below |
+| `status` | `NOT_STARTED`, `IN_PROGRESS`, `SUBMITTED`, or `COMPLETE`; defaults to `NOT_STARTED` |
+| `detail` | Required non-empty object containing dynamic field/value pairs |
+| `version` | Optimistic concurrency |
+| `createdAt`, `updatedAt` | UTC timestamps |
+
+Approved Service category codes and display labels:
+
+| Code | Display label |
+| --- | --- |
+| `TRADE_LICENCE_NEW_RENEWAL_AMENDMENT` | Trade Licence (New / Renewal / Amendment) |
+| `VAT_REGISTRATION` | VAT Registration |
+| `VAT_DEREGISTRATION` | VAT Deregistration |
+| `CORPORATE_TAX_REGISTRATION` | Corporate Tax Registration |
+| `ESTABLISHMENT_CARD_NEW_RENEWAL` | Establishment Card (New / Renewal) |
+| `SIGNATURE_CARD_NEW_RENEWAL` | Signature Card (New / Renewal) |
+| `SIGNATURE_CARD_ACTIVATION` | Signature Card Activation |
+| `BANK_ACCOUNT_ASSISTANCE` | Bank Account Assistance |
+| `VAT_FILING_QUARTERLY_MONTHLY` | VAT Filing (Quarterly / Monthly) |
+| `VAT_PAYMENT_TRACKING` | VAT Payment Tracking |
+| `CORPORATE_TAX_FILING_ANNUAL` | Corporate Tax Filing (Annual) |
+| `CORPORATE_TAX_PAYMENT_TRACKING` | Corporate Tax Payment Tracking |
+| `INVESTOR_PARTNER_EMPLOYEE_VISA_NEW` | Investor / Partner / Employee Visa (New) |
+| `VISA_RENEWAL` | Visa Renewal |
+| `VISA_CANCELLATION` | Visa Cancellation |
+| `STATUS_CHANGE` | Status Change |
+| `MEDICAL_TEST` | Medical Test |
+| `EMIRATES_ID` | Emirates ID |
+| `HEALTH_INSURANCE` | Health Insurance |
+| `ILOE_INSURANCE` | ILOE Insurance |
+| `BENEFICIARY_UPDATE` | Beneficiary Update |
+| `TYPING_SERVICES` | Typing Services |
+| `IMMIGRATION_LABOUR_SERVICES` | Immigration / Labour Services |
+| `OTHER_CUSTOM_SERVICE` | Other / Custom Service |
+
+## 14. Documents
+
+The Document collection stores Service-scoped and optionally Company-scoped document metadata.
+It stores a URL, not file bytes. Document authorization, file validation,
+retention, versioning, and deletion remain deferred under `BR-DOC-003`.
+
+| Field | Meaning / constraint |
+| --- | --- |
+| `company` | Optional Company MongoDB `_id`; omitted for an individual Client |
+| `service` | Required reference to the related Service MongoDB `_id` |
+| `documentUrl` | Required bounded HTTP or HTTPS URL |
+| `version` | Optimistic concurrency |
+| `createdAt`, `updatedAt` | UTC timestamps |
+
+## 15. Payments
+
+Payments record monetary facts associated with a Company Service. They do not
+process money or establish accounting behavior. Amounts use exact decimal
+storage rather than binary floating point. Method and status are normalized
+uppercase strings until their business vocabularies are separately approved.
+
+| Field | Meaning / constraint |
+| --- | --- |
+| `company` | Optional Company MongoDB `_id`; omitted for an individual Client |
+| `service` | Required reference to the related Service MongoDB `_id` |
+| `governmentFee`, `serviceFee` | Required non-negative decimal amounts |
+| `totalAmount`, `amountReceived` | Required non-negative decimal amounts |
+| `paymentMethod`, `paymentStatus` | Required bounded uppercase values; no lifecycle is inferred |
+| `paymentDate` | Required UTC payment date/time |
+| `version` | Optimistic concurrency |
+| `createdAt`, `updatedAt` | UTC timestamps |
+
+## 16. Reminders
+
+Reminders store due-date tracking for a Company Service. These records are not
+Lead Follow-ups or Renewal Reminders and do not define notification delivery,
+cadence, recipients, or escalation behavior.
+
+| Field | Meaning / constraint |
+| --- | --- |
+| `company` | Optional Company MongoDB `_id`; omitted for an individual Client |
+| `service` | Required reference to the related Service MongoDB `_id` |
+| `dueDate` | Required UTC due date/time |
+| `reminderBefore` | Required non-negative whole number of days |
+| `followUpsDate` | Required UTC follow-up date/time |
+| `notes` | Optional bounded contextual text |
+| `version` | Optimistic concurrency |
+| `createdAt`, `updatedAt` | UTC timestamps |

@@ -48,6 +48,41 @@ export const creatingCompany = async (req, res, next) => {
   }
 };
 
+export const listCompanies = async (req, res, next) => {
+  try {
+    const { page, limit } = req.validatedQuery;
+    const skip = (page - 1) * limit;
+    const [companies, total] = await Promise.all([
+      Company.find({})
+        .sort({ createdAt: -1, companyId: 1 })
+        .skip(skip)
+        .limit(limit)
+        .lean()
+        .exec(),
+      Company.countDocuments({}).exec(),
+    ]);
+
+    return res.status(200).json({
+      data: companies.map(toCompanyRepresentation),
+      page: {
+        page,
+        limit,
+        total,
+        totalPages: total === 0 ? 0 : Math.ceil(total / limit),
+      },
+      meta: { correlationId: req.correlationId },
+    });
+  } catch (error) {
+    logger.error("Company list lookup failed.", {
+      errorName: error.name,
+      errorCode: error.code,
+      actorId: req.user?.id,
+      correlationId: req.correlationId,
+    });
+    return next(error);
+  }
+};
+
 export const getCompaniesByClient = async (req, res, next) => {
   try {
     const { clientId } = req.validatedParams;

@@ -66,8 +66,18 @@ Use database-supported text/search indexing or a normalized bounded search
 projection. Search results must still apply owner authorization before
 pagination and must not expose inaccessible duplicate candidates.
 
-## 8. Verification
+## 8. Company Service Record Indexes
+
+| Record | Ordered fields | Supports |
+| --- | --- | --- |
+| Service | `client`, `company`, `status`, `createdAt`, `_id` | Stable status-filtered Service history for one Client Company |
+| Document | `company`, `service`, `createdAt`, `_id` | Stable Document history for one Company Service |
+| Payment | `company`, `service`, `paymentDate`, `_id` | Stable Payment history for one Company Service |
+| Reminder | `company`, `service`, `dueDate`, `_id` | Upcoming due-date lookup for one Company Service |
+
+## 9. Verification
 
 Integration tests must verify uniqueness conflicts and query behavior. Before
 release, capture query plans for Agent workload, Admin filters, duplicate
-detection, Timeline, overdue Follow-ups, and unread Notifications.
+detection, Timeline, overdue Follow-ups, unread Notifications, and the
+Company-scoped Service, Document, Payment, and Reminder queries.

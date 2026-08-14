@@ -22,7 +22,29 @@ defaults to `ACTIVE`.
 Successful creation returns `201 Created`, a standard single-resource response
 envelope, a `Location` header, and a version `ETag`.
 
-## 2. Get Companies by Client
+## 2. List Companies
+
+`GET /api/v1/companies?page={page}&limit={limit}`
+
+Only an active User with the `ADMIN` role may call this endpoint. This route
+has no path parameters.
+
+| Query | Requirement |
+| --- | --- |
+| `page` | Optional positive integer; defaults to `1` |
+| `limit` | Optional integer from `1` to `100`; defaults to `25` |
+
+Companies are sorted by newest creation time first, with `companyId` as the
+deterministic tie-breaker. Each item in `data` is a full Company
+representation. The `client` field contains the Client record's MongoDB `_id`,
+and `id` contains the Company record's MongoDB `_id` as a string.
+
+The response uses the collection envelope shown in the next section: `data`
+contains the Companies, `page` contains `page`, `limit`, `total`, and
+`totalPages`, and `meta.correlationId` contains the request correlation ID.
+An empty result returns `200` with an empty `data` array.
+
+## 3. Get Companies by Client
 
 `GET /api/v1/companies/client/{clientId}?page={page}&limit={limit}`
 
@@ -56,7 +78,7 @@ deterministic tie-breaker. The response contains full Company representations:
 An existing Client with no Companies returns `200` and an empty `data` array.
 An unknown Client returns `404 CLIENT_NOT_FOUND`.
 
-## 3. Errors
+## 4. Errors
 
 - `401 AUTHENTICATION_REQUIRED` when no valid session is available.
 - `403 FORBIDDEN` when the authenticated User is not an Admin.
