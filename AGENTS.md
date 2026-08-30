@@ -8,3 +8,8 @@
 
 # API Rules
 - Controller function should have try and catch expression so error can be send in response and console in terminal for watch useful logs
+- Implement database operation on service folder of their respective module
+- Every important function should have a proper two line comment (for Human and AI agent)
+- Every function created should have proper name defining their work
+- Every repetive function that is being used in more than two module should be place in shared folder
+- Create utility function in utils folder

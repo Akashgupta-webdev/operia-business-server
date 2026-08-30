@@ -1,5 +1,16 @@
 # Client API
 
+> The current complete Client creation contract is documented in
+> [`client-create.md`](client-create.md). It supersedes the creation contracts
+> in sections 2 and 3 below while the remaining Client APIs are migrated.
+> The current Client list contract is documented in
+> [`client-list.md`](client-list.md) and supersedes section 6 below.
+> The current complete Client detail contract is documented in
+> [`client-detail.md`](client-detail.md) and supersedes section 5 below.
+> The current Client Service create, update, and delete contract is documented
+> in [`client-service-crud.md`](client-service-crud.md) and supersedes section
+> 8 for those operations.
+
 ## 1. Scope
 
 This API supports direct creation of Client records by an authenticated Admin.

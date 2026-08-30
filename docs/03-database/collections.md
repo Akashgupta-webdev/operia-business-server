@@ -285,3 +285,26 @@ cadence, recipients, or escalation behavior.
 | `notes` | Optional bounded contextual text |
 | `version` | Optimistic concurrency |
 | `createdAt`, `updatedAt` | UTC timestamps |
+
+## 17. Expenses
+
+Expenses store operational outgoings used by the Profit and Loss module.
+Amounts use exact decimal storage and dates use UTC date values.
+
+| Field | Meaning / constraint |
+| --- | --- |
+| `expenseTitle` | Required bounded display title |
+| `expenseCategory` | Required approved operational-expense category |
+| `expenseAmount` | Optional non-negative exact decimal amount |
+| `expenseDate` | Optional UTC expense date |
+| `paymentMethod` | Optional approved payment method |
+| `vendorName` | Optional bounded vendor name |
+| `receiptReference` | Optional bounded receipt or transaction reference |
+| `notes` | Optional bounded contextual text |
+| `version` | Optimistic concurrency |
+| `createdAt`, `updatedAt` | UTC timestamps |
+
+Monthly Profit and Loss reporting groups Client Service package prices by
+Service category and Expense amounts by Expense category. Accounts receivable
+is derived from each Client Payment as the non-negative difference between
+`totalBilled` and `amountReceived`; it is not stored as a separate field.

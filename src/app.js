@@ -7,12 +7,12 @@ import ErrorHandler from "./middleware/errorHandler.middleware.js";
 import rateLimiter from "./middleware/rateLimit.middleware.js";
 import requestContext from "./middleware/requestContext.middleware.js";
 import authenticationRouter from "./modules/authentication/routes/authentication.routes.js";
-import clientRouter from "./modules/clients/routes/client.route.js";
-import companyRouter from "./modules/company/routes/company.route.js";
 import userRouter from "./modules/user/routes/user.route.js";
 import { systemHealth } from "./utils/systemHealth.js";
 import { undeclaredRouteHandler } from "./utils/undeclaredRoute.js";
 import { config } from 'dotenv'
+import ClientRoute from "./modules/clients/client.route.js";
+import ProfitLossRoute from "./modules/profit-loss/profitLoss.route.js";
 config();
 
 const app = express();
@@ -25,17 +25,16 @@ app.use(helmet());
 app.use(express.json({ limit: "1mb" }));
 app.use(express.urlencoded({ extended: true, limit: "1mb" }));
 app.use(cookieParser());
-console.log(process.env.ALLOWED_ORIGIN)
+
 const allowedOrigins = [
   process.env.ALLOWED_ORIGIN
 ];
-console.log(allowedOrigins)
 
 app.use(
   cors({
     origin: allowedOrigins,
     credentials: true,
-    methods: ["GET", "POST", "PATCH", "OPTIONS"],
+    methods: ["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: [
       "Authorization",
       "Content-Type",
@@ -52,9 +51,9 @@ app.use(
 app.use(rateLimiter);
 app.get("/health", systemHealth);
 app.use("/api/v1/auth", authenticationRouter);
-app.use("/api/v1/clients", clientRouter);
-app.use("/api/v1/companies", companyRouter);
 app.use("/api/v1", userRouter);
+app.use("/api/v1/client", ClientRoute);
+app.use("/api/v1/profit-loss", ProfitLossRoute);
 
 // Feature routes are registered above the fallback handler.
 app.use(undeclaredRouteHandler);

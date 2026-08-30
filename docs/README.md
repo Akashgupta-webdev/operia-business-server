@@ -14,6 +14,27 @@ Read documents in this order:
 8. `04-design/*` and `07-testing/*`
 9. `decisions/*` — accepted architectural/business-boundary decisions
 
+Frontend integration for the complete Client creation endpoint is documented
+in `05-api/client-create.md`. Client list integration is documented in
+`05-api/client-list.md`, and complete Client detail integration is documented
+in `05-api/client-detail.md`. Client information updates are documented in
+`05-api/client-update.md`, and Client Company updates are documented in
+`05-api/client-company-update.md`. Client Member, Vehicle, and Driver creation,
+updates, and deletion are documented in
+`05-api/client-related-record-update.md`.
+Client Service creation, updates, and deletion are documented in
+`05-api/client-service-crud.md`.
+Client Document upload and Cloudinary-backed deletion are documented in
+`05-api/client-document-crud.md`.
+Client dashboard renewal and inventory KPIs are documented in
+`05-api/client-dashboard-kpi.md`.
+The paginated Client Company list is documented in
+`05-api/client-company-list.md`.
+Profit and Loss Expense creation is documented in
+`05-api/profit-loss-expense.md`.
+Monthly Profit and Loss reporting is documented in
+`05-api/profit-loss-report.md`.
+
 ## Document Status
 
 | Area | Release 1 status |
