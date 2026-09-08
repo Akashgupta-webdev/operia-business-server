@@ -33,7 +33,7 @@ has status `Active`, because Client Company currently has no separate status.
 
 - Client and Client Member: Passport, Emirates ID, Visa, and health-insurance
   expiry dates.
-- Client Company: licence expiry date.
+- Client Company: `tradeLicence.tradeLicenceExpiry`.
 - Client Vehicle: registration and insurance expiry dates.
 - Client Driver: licence expiry date.
 

@@ -99,8 +99,14 @@ const clientSchema = Joi.object({
 
 const companySchema = Joi.object({
   companyName: Joi.string().trim().min(2).max(200).required(),
-  tradeLicenceNumber: boundedString(100),
-  licenceExpiryDate: formattedDate,
+  tradeLicence: Joi.object({
+    tradeLicenceNo: boundedString(100),
+    tradeLicenceExpiry: formattedDate,
+  }).min(1).unknown(false),
+  establishment: Joi.object({
+    establishmentCard: boundedString(100),
+    establishmentCardExpiry: formattedDate,
+  }).min(1).unknown(false),
   vatTaxRegistrationNumber: boundedString(100),
   corporateTaxNumber: boundedString(100),
 }).unknown(false);

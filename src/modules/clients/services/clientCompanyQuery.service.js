@@ -52,11 +52,11 @@ export const buildGetClientCompaniesPipeline = ({ page, limit, search }) => {
                 },
               },
               companyName: { $ifNull: ["$companyName", null] },
-              tradeLicenceNumber: {
-                $ifNull: ["$tradeLicenceNumber", null],
+              tradeLicence: {
+                $ifNull: ["$tradeLicence", null],
               },
-              licenceExpiryDate: {
-                $ifNull: ["$licenceExpiryDate", null],
+              establishment: {
+                $ifNull: ["$establishment", null],
               },
               vatTaxRegistrationNumber: {
                 $ifNull: ["$vatTaxRegistrationNumber", null],

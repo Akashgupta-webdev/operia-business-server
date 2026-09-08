@@ -19,11 +19,20 @@ const clientCompanySchema = new Schema(
       trim: true,
       required: [true, "Company name is required."],
     },
-    tradeLicenceNumber: {
-      type: String,
-      trim: true,
+    tradeLicence: {
+      tradeLicenceNo: {
+        type: String,
+        trim: true,
+      },
+      tradeLicenceExpiry: formattedDateField("Trade licence expiry"),
     },
-    licenceExpiryDate: formattedDateField("Licence expiry date"),
+    establishment: {
+      establishmentCard: {
+        type: String,
+        trim: true,
+      },
+      establishmentCardExpiry: formattedDateField("Establishment card expiry"),
+    },
     vatTaxRegistrationNumber: {
       type: String,
       trim: true,

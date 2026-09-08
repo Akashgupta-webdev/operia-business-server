@@ -308,3 +308,16 @@ Monthly Profit and Loss reporting groups Client Service package prices by
 Service category and Expense amounts by Expense category. Accounts receivable
 is derived from each Client Payment as the non-negative difference between
 `totalBilled` and `amountReceived`; it is not stored as a separate field.
+
+## 18. Client Companies
+
+The `clientCompanies` collection requires only `client` (Client ObjectId) and
+`companyName` (trimmed string). Optional `tradeLicence` contains `tradeLicenceNo`
+and `tradeLicenceExpiry`; optional `establishment` contains `establishmentCard`
+and `establishmentCardExpiry`. Identifiers are trimmed strings and expiry dates
+use `dd-mm-yyyy`. The existing tax fields remain unchanged.
+
+Before deployment, run `migrations/2026-09-08-client-company-trade-licence.js`
+with mongosh against the target database while application writes are stopped.
+It moves legacy fields if their destination is absent and removes the old fields.
+Existing nested values take precedence, and the migration is safe to rerun.

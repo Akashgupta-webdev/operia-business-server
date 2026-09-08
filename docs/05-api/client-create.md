@@ -89,8 +89,8 @@ All date-only fields are strings in `dd-mm-yyyy` format, for example
 | Field | Validation |
 | --- | --- |
 | `companyName` | Required trimmed string, 2-200 characters |
-| `tradeLicenceNumber` | Optional, maximum 100 characters |
-| `licenceExpiryDate` | Optional `dd-mm-yyyy` |
+| `tradeLicence.tradeLicenceNo` | Optional, maximum 100 characters |
+| `tradeLicence.tradeLicenceExpiry` | Optional `dd-mm-yyyy` |
 | `vatTaxRegistrationNumber` | Optional, maximum 100 characters |
 | `corporateTaxNumber` | Optional, maximum 100 characters |
 
@@ -225,8 +225,8 @@ Each `reminders` item accepts:
   },
   "company": {
     "companyName": "Example Trading LLC",
-    "tradeLicenceNumber": "TL-1001",
-    "licenceExpiryDate": "31-12-2027",
+    "tradeLicence": { "tradeLicenceNo": "TL-1001", "tradeLicenceExpiry": "31-12-2027" },
+    "establishment": { "establishmentCard": "EC-1001", "establishmentCardExpiry": "31-12-2027" },
     "vatTaxRegistrationNumber": "VAT-1001",
     "corporateTaxNumber": "CT-1001"
   },
@@ -349,3 +349,10 @@ version. Decimal128 values serialize as extended JSON, for example
 
 Uploads finish before the database transaction. If persistence fails, uploaded
 Cloudinary assets are deleted. No partial database success is returned.
+
+Company licence fields are sent inside `tradeLicence`; establishment fields are
+sent inside `establishment` (`establishmentCard`, `establishmentCardExpiry`).
+Both objects are optional. Card numbers are trimmed strings up to 100 characters;
+expiry dates use `dd-mm-yyyy`. Only `client` and `companyName` are required by
+the Company model. PATCH preserves omitted nested fields and allows null to
+clear fields or either object. Legacy top-level licence fields are rejected.

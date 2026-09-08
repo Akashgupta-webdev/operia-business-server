@@ -24,15 +24,14 @@ const TOKEN_CONFIG = {
 test("validates editable Client Company information", () => {
   const { error, value } = updateClientCompanyInformationSchema.validate({
     companyName: "  Example Trading LLC  ",
-    tradeLicenceNumber: "  TL-1001  ",
-    licenceExpiryDate: "31-12-2030",
+    tradeLicence: { tradeLicenceNo: "  TL-1001  ", tradeLicenceExpiry: "31-12-2030" },
     vatTaxRegistrationNumber: null,
     corporateTaxNumber: "CT-1001",
   });
 
   assert.equal(error, undefined);
   assert.equal(value.companyName, "Example Trading LLC");
-  assert.equal(value.tradeLicenceNumber, "TL-1001");
+  assert.equal(value.tradeLicence.tradeLicenceNo, "TL-1001");
   assert.equal(value.vatTaxRegistrationNumber, null);
 });
 
@@ -41,7 +40,7 @@ test("rejects empty, server-owned, and invalid-date Company updates", () => {
   const invalidResult = updateClientCompanyInformationSchema.validate(
     {
       client: new mongoose.Types.ObjectId().toString(),
-      licenceExpiryDate: "2030-12-31",
+      tradeLicence: { tradeLicenceExpiry: "2030-12-31" },
     },
     { abortEarly: false }
   );
@@ -49,7 +48,7 @@ test("rejects empty, server-owned, and invalid-date Company updates", () => {
   assert.ok(emptyResult.error);
   assert.deepEqual(
     invalidResult.error.details.map(({ path }) => path.join(".")).sort(),
-    ["client", "licenceExpiryDate"]
+    ["client", "tradeLicence.tradeLicenceExpiry"]
   );
 });
 
@@ -62,6 +61,8 @@ test("updates the Company associated with a Client through the service", async (
     _id: companyId,
     client: clientId,
     companyName: "Old Company",
+    tradeLicence: { tradeLicenceNo: "TL-1", tradeLicenceExpiry: "31-12-2030" },
+    establishment: { establishmentCard: "EC-1", establishmentCardExpiry: "31-12-2030" },
   });
   let companyFilter;
 
@@ -82,10 +83,16 @@ test("updates the Company associated with a Client through the service", async (
   try {
     const result = await updateClientCompanyInformation(clientId.toString(), {
       companyName: "Updated Company",
+      tradeLicence: { tradeLicenceExpiry: "31-12-2031" },
+      establishment: { establishmentCardExpiry: null },
     });
 
     assert.deepEqual(companyFilter, { client: clientId.toString() });
     assert.equal(result.companyName, "Updated Company");
+    assert.equal(result.tradeLicence.tradeLicenceNo, "TL-1");
+    assert.equal(result.tradeLicence.tradeLicenceExpiry, "31-12-2031");
+    assert.equal(result.establishment.establishmentCard, "EC-1");
+    assert.equal(result.establishment.establishmentCardExpiry, null);
     assert.equal(result.version, 1);
   } finally {
     Client.exists = originalClientExists;
@@ -180,8 +187,7 @@ test("serves PATCH /api/v1/client/:id/company for an Admin", async () => {
         },
         body: JSON.stringify({
           companyName: "Updated Company LLC",
-          tradeLicenceNumber: "TL-2002",
-          licenceExpiryDate: "31-12-2030",
+          tradeLicence: { tradeLicenceNo: "TL-2002", tradeLicenceExpiry: "31-12-2030" },
         }),
       }
     );
@@ -192,7 +198,7 @@ test("serves PATCH /api/v1/client/:id/company for an Admin", async () => {
     assert.equal(body.data.id, companyId.toString());
     assert.equal(body.data.client, clientId.toString());
     assert.equal(body.data.companyName, "Updated Company LLC");
-    assert.equal(body.data.tradeLicenceNumber, "TL-2002");
+    assert.equal(body.data.tradeLicence.tradeLicenceNo, "TL-2002");
   } finally {
     User.findById = originalUserFindById;
     Client.exists = originalClientExists;
@@ -201,4 +207,34 @@ test("serves PATCH /api/v1/client/:id/company for an Admin", async () => {
       server.close((error) => (error ? reject(error) : resolve()));
     });
   }
+});
+
+
+test("requires only client and companyName and validates nested company dates", async () => {
+  const client = new mongoose.Types.ObjectId();
+  await new ClientCompany({ client, companyName: "Example" }).validate();
+  await assert.rejects(new ClientCompany({}).validate(), (error) => {
+    assert.deepEqual(Object.keys(error.errors).sort(), ["client", "companyName"]);
+    return true;
+  });
+  const company = new ClientCompany({
+    client, companyName: "Example",
+    tradeLicence: { tradeLicenceNo: " TL-1 ", tradeLicenceExpiry: "31-12-2030" },
+    establishment: { establishmentCard: " EC-1 ", establishmentCardExpiry: "31-12-2030" },
+  });
+  await company.validate();
+  assert.equal(company.tradeLicence.tradeLicenceNo, "TL-1");
+  assert.equal(company.establishment.establishmentCard, "EC-1");
+  company.establishment.establishmentCardExpiry = "2030-12-31";
+  await assert.rejects(company.validate(), (error) => Boolean(error.errors["establishment.establishmentCardExpiry"]));
+});
+
+test("validates establishment fields and rejects unknown nested fields", () => {
+  const valid = updateClientCompanyInformationSchema.validate({
+    establishment: { establishmentCard: " EC-1 ", establishmentCardExpiry: null },
+  });
+  assert.equal(valid.error, undefined);
+  assert.equal(valid.value.establishment.establishmentCard, "EC-1");
+  assert.ok(updateClientCompanyInformationSchema.validate({ establishment: { unknown: "value" } }).error);
+  assert.ok(updateClientCompanyInformationSchema.validate({ establishment: { establishmentCardExpiry: "2030-12-31" } }).error);
 });

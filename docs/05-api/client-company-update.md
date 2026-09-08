@@ -20,14 +20,16 @@ and `updatedAt`, are rejected.
 | Field | Validation when supplied |
 | --- | --- |
 | `companyName` | Trimmed string, 2-200 characters |
-| `tradeLicenceNumber` | `null` or a non-empty trimmed string up to 100 characters |
-| `licenceExpiryDate` | `null` or a date string in `dd-mm-yyyy` format |
+| `tradeLicence.tradeLicenceNo` | `null` or a non-empty trimmed string up to 100 characters |
+| `tradeLicence.tradeLicenceExpiry` | `null` or a date string in `dd-mm-yyyy` format |
+| `establishment.establishmentCard` | Optional; `null` or a non-empty trimmed string up to 100 characters |
+| `establishment.establishmentCardExpiry` | Optional; `null` or a date string in `dd-mm-yyyy` format |
 | `vatTaxRegistrationNumber` | `null` or a non-empty trimmed string up to 100 characters |
 | `corporateTaxNumber` | `null` or a non-empty trimmed string up to 100 characters |
 
 The current Client Company model has no enum-backed select fields, so there
 are no select options for this endpoint. All editable fields are text inputs
-except `licenceExpiryDate`, which is a formatted date input.
+except the expiry fields, which are formatted date inputs.
 
 ## JavaScript Example
 
@@ -38,8 +40,14 @@ const response = await fetch(`/api/v1/client/${clientId}/company`, {
   headers: { "Content-Type": "application/json" },
   body: JSON.stringify({
     companyName: "Example Trading LLC",
-    tradeLicenceNumber: "TL-2002",
-    licenceExpiryDate: "31-12-2030",
+    tradeLicence: {
+      tradeLicenceNo: "TL-2002",
+      tradeLicenceExpiry: "31-12-2030",
+    },
+    establishment: {
+      establishmentCard: "EC-1001",
+      establishmentCardExpiry: "31-12-2030",
+    },
     vatTaxRegistrationNumber: "VAT-1001",
     corporateTaxNumber: "CT-1001",
   }),
@@ -62,3 +70,10 @@ Company version.
 | `404` | `CLIENT_COMPANY_NOT_FOUND` | The Client has no associated Company record |
 | `422` | `VALIDATION_FAILED` | The Client id or request body is invalid |
 | `500` | `INTERNAL_ERROR` | The update failed unexpectedly |
+
+Company licence fields are sent inside `tradeLicence`; establishment fields are
+sent inside `establishment` (`establishmentCard`, `establishmentCardExpiry`).
+Both objects are optional. Card numbers are trimmed strings up to 100 characters;
+expiry dates use `dd-mm-yyyy`. Only `client` and `companyName` are required by
+the Company model. PATCH preserves omitted nested fields and allows null to
+clear fields or either object. Legacy top-level licence fields are rejected.

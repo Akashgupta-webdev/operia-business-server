@@ -21,7 +21,15 @@ export const updateClientCompanyInformation = async (
     throw new ClientCompanyNotFoundError();
   }
 
-  company.set(companyInformation);
+  for (const [field, value] of Object.entries(companyInformation)) {
+    if ((field === "tradeLicence" || field === "establishment") && value !== null) {
+      for (const [nestedField, nestedValue] of Object.entries(value)) {
+        company.set(`${field}.${nestedField}`, nestedValue);
+      }
+    } else {
+      company.set(field, value);
+    }
+  }
   await company.save();
 
   return company;

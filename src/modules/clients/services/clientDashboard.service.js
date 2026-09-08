@@ -30,7 +30,7 @@ const RENEWAL_SOURCES = Object.freeze([
   {
     scope: "Companies",
     model: ClientCompany,
-    fields: ["$licenceExpiryDate"],
+    fields: ["$tradeLicence.tradeLicenceExpiry"],
   },
   {
     scope: "Renewals",
@@ -238,7 +238,7 @@ export const getClientDashboardKPI = async (query, now = new Date()) => {
     ClientVehicle.countDocuments({}).exec(),
     ClientDriver.countDocuments({}).exec(),
     countFieldsAcrossCollection(ClientCompany, [
-      "tradeLicenceNumber",
+      "tradeLicence.tradeLicenceNo",
       "vatTaxRegistrationNumber",
       "corporateTaxNumber",
     ]),

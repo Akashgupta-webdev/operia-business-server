@@ -62,7 +62,17 @@ import {
   validateUpdateClientVehicle,
 } from "./validators/clientRelatedRecord.validator.js";
 
+import { getClientRenewals } from "./controller/clientRenewal.controller.js";
+import { validateGetClientRenewals } from "./validators/clientRenewal.validator.js";
+
 const ClientRoute = express.Router();
+
+ClientRoute.get(
+  "/renewals",
+  authorize("ADMIN"),
+  validateGetClientRenewals,
+  getClientRenewals
+);
 
 ClientRoute.post(
   "/",

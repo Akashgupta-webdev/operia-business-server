@@ -13,8 +13,14 @@ const nullableFormattedDate = Joi.string()
 
 export const updateClientCompanyInformationSchema = Joi.object({
   companyName: Joi.string().trim().min(2).max(200),
-  tradeLicenceNumber: nullableBoundedString(100),
-  licenceExpiryDate: nullableFormattedDate,
+  tradeLicence: Joi.object({
+    tradeLicenceNo: nullableBoundedString(100),
+    tradeLicenceExpiry: nullableFormattedDate,
+  }).min(1).allow(null).unknown(false),
+  establishment: Joi.object({
+    establishmentCard: nullableBoundedString(100),
+    establishmentCardExpiry: nullableFormattedDate,
+  }).min(1).allow(null).unknown(false),
   vatTaxRegistrationNumber: nullableBoundedString(100),
   corporateTaxNumber: nullableBoundedString(100),
 })
