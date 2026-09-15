@@ -27,7 +27,8 @@ app.use(express.urlencoded({ extended: true, limit: "1mb" }));
 app.use(cookieParser());
 
 const allowedOrigins = [
-  process.env.ALLOWED_ORIGIN
+  process.env.ALLOWED_ORIGIN,
+  process.env.ALLOWED_ORIGIN_CLIENT,
 ];
 
 app.use(

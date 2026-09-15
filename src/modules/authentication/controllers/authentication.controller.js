@@ -18,15 +18,17 @@ const cookieOptions = (maxAge, config) => ({
   maxAge,
 });
 
-export const setAuthenticationCookies = (res, tokens) => {
+// Sets HttpOnly token cookies using the selected identity-specific names.
+// Default names preserve the existing Admin and Agent authentication contract.
+export const setAuthenticationCookies = (res, tokens, names = { access: ACCESS_COOKIE, refresh: REFRESH_COOKIE }) => {
   const config = getAuthenticationConfig();
   res.cookie(
-    ACCESS_COOKIE,
+    names.access,
     tokens.accessToken,
     cookieOptions(config.accessTokenTtlSeconds * 1000, config)
   );
   res.cookie(
-    REFRESH_COOKIE,
+    names.refresh,
     tokens.refreshToken,
     cookieOptions(config.refreshTokenTtlSeconds * 1000, config)
   );

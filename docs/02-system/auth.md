@@ -10,7 +10,9 @@ identity may perform an action on a particular record.
 
 - Every protected action has one active User identity.
 - User email addresses are unique after normalization.
-- Credentials are never stored or logged in plaintext.
+- User credentials are never stored in plaintext. Client portal passwords are
+  explicitly stored in plaintext as specified in `../05-api/client-credentials.md`.
+  Credentials are never logged.
 - A deactivated User cannot start a new session or receive a new assignment.
 - Deactivation retains historical authorship, ownership, Timeline, and Audit
   references.

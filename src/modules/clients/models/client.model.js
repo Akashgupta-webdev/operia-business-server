@@ -52,6 +52,14 @@ const clientSchema = new Schema(
       trim: true,
       lowercase: true,
     },
+    password: {
+      type: String,
+      select: false,
+    },
+    refreshKeyHash: {
+      type: String,
+      select: false,
+    },
     nationality: {
       type: String,
       enum: {
@@ -79,7 +87,18 @@ const clientSchema = new Schema(
     visa: visaSchema,
     healthInsurance: healthInsuranceSchema,
   },
-  createModelOptions("clients")
+  {
+    ...createModelOptions("clients", ["password", "refreshKeyHash"]),
+    toObject: {
+      // Removes the credential even when a document explicitly selected the password.
+      // Plain object consumers must receive the same protection as JSON responses.
+      transform(_document, value) {
+        delete value.password;
+        delete value.refreshKeyHash;
+        return value;
+      },
+    },
+  }
 );
 
 const Client = models.Client || model("Client", clientSchema);

@@ -1,4 +1,6 @@
 import express from "express";
+import { updateClientCredentials } from "./controller/clientCredentials.controller.js";
+import { validateUpdateClientCredentials } from "./validators/clientCredentials.validator.js";
 
 import { authorize } from "../../middleware/authorize.middleware.js";
 import {
@@ -66,6 +68,13 @@ import { getClientRenewals } from "./controller/clientRenewal.controller.js";
 import { validateGetClientRenewals } from "./validators/clientRenewal.validator.js";
 
 const ClientRoute = express.Router();
+
+ClientRoute.patch(
+  "/:id/credentials",
+  authorize("ADMIN"),
+  validateUpdateClientCredentials,
+  updateClientCredentials
+);
 
 ClientRoute.get(
   "/renewals",
