@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import ClientRoute from "../src/modules/clients/client.route.js";
+import ClientService from "../src/modules/clients/models/clientService.model.js";
 import Client from "../src/modules/clients/models/client.model.js";
 import ClientCompany from "../src/modules/clients/models/clientCompany.model.js";
 import ClientDriver from "../src/modules/clients/models/clientDrivers.model.js";
@@ -79,6 +80,13 @@ test("builds cumulative due-soon and inclusive date filters", () => {
 test("combines renewal and inventory aggregates into dashboard KPIs", async () => {
   const models = [Client, ClientMember, ClientCompany, ClientVehicle, ClientDriver];
   const originalAggregates = new Map(models.map((Model) => [Model, Model.aggregate]));
+  const originalServiceCountDocuments = ClientService.countDocuments;
+  ClientService.countDocuments = (filter) => ({ async exec() {
+    assert.equal(filter.serviceCode, "VAT_RETURN_FILING");
+    assert.equal(filter.dueDate.$lte.toISOString(), "2026-10-29T00:00:00.000Z");
+    assert.deepEqual(filter.status.$nin, ["Completed", "Cancelled"]);
+    return 2;
+  } });
   const originalClientCountDocuments = Client.countDocuments;
   const originalVehicleCountDocuments = ClientVehicle.countDocuments;
   const originalDriverCountDocuments = ClientDriver.countDocuments;
@@ -132,7 +140,7 @@ test("combines renewal and inventory aggregates into dashboard KPIs", async () =
       validAndCompliant: 3,
       totalClients: 10,
       activeCompanies: 2,
-      vatDue: 0,
+      vatDue: 2,
       corporateTax: 0,
       visaEidPassport: 7,
       insuranceAndFleet: 11,
@@ -142,6 +150,7 @@ test("combines renewal and inventory aggregates into dashboard KPIs", async () =
     for (const [Model, aggregate] of originalAggregates) {
       Model.aggregate = aggregate;
     }
+    ClientService.countDocuments = originalServiceCountDocuments;
     Client.countDocuments = originalClientCountDocuments;
     ClientVehicle.countDocuments = originalVehicleCountDocuments;
     ClientDriver.countDocuments = originalDriverCountDocuments;

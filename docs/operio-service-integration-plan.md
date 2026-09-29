@@ -226,3 +226,11 @@ currently it has test/start/dev scripts, but no lint or type-check script.
 Suggested first vertical slice after steps 1-3: Trade Licence Renewal and
 Quarterly VAT Return. Together they validate expiry tracking and filing deadlines
 without assuming all services behave like renewable licences.
+
+## Implemented VAT slice
+
+The UAE VAT workflow now implements service periods, company/assignee links,
+review/approval/submission, separate tax settlement, retained evidence, internal
+reminders, recurrence and vatDue. See 06-workflows/vat-filing.md and
+05-api/client-vat-filing.md. The remaining 44-package catalog work and outbound
+notification delivery remain proposals.

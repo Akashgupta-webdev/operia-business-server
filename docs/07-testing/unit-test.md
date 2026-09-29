@@ -73,3 +73,11 @@ deterministic identifiers. Never copy production personal data into tests.
 Run format/lint/type checks and domain tests first, then integration and API
 contract tests. Smoke tests run against the deployable artifact. A failed
 required suite blocks release.
+
+## VAT verification
+
+Run npm run test:vat for deterministic lifecycle, decimal, ownership, API and
+version tests. Run npm run test:vat:integration with VAT_TEST_MONGODB_URI for
+real replica-set uniqueness, concurrency, transaction rollback and recurrence.
+This suite owns only a newly generated vat_test_* database. It is separate from
+node --test discovery because it requires an explicitly supplied test database.

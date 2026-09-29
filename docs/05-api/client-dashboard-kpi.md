@@ -74,8 +74,11 @@ breakdown values are cumulative.
 `visaEidPassport` counts populated Passport, Emirates ID, and Visa identifiers
 across Clients and Client Members. `insuranceAndFleet` counts Client Vehicle
 and Client Driver records. `tradeLicense` counts populated trade licence, VAT
-registration, and corporate tax number fields. `vatDue` and `corporateTax` are
-reserved and currently return zero.
+registration, and corporate tax number fields. `corporateTax` remains reserved
+and returns zero. `vatDue` counts VAT_RETURN_FILING services that are neither
+Completed nor Cancelled and whose statutory dueDate is on or before 60 days
+from the current Dubai calendar date, including overdue work. Like inventory
+counts, this metric ignores the legacy expiry filters.
 
 Invalid filters return `422 VALIDATION_FAILED` using the standard error
 envelope.

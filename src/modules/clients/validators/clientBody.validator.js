@@ -30,6 +30,8 @@ import {
 } from "../models/client.model.js";
 import { clientMongoIdParamsSchema } from "./clientParams.validator.js";
 
+import { vatCreationFields } from "./clientVat.validator.js";
+
 const MAX_RELATED_RECORDS = 100;
 const MAX_DOCUMENTS = 10;
 const nonEmptyString = Joi.string().trim().min(1);
@@ -141,6 +143,7 @@ export const createClientDriverSchema = Joi.object({
   .unknown(false);
 
 export const createClientServiceSchema = Joi.object({
+  ...vatCreationFields,
   category: Joi.string().valid(...CLIENT_SERVICE_CATEGORIES),
   package: Joi.string().valid(...CLIENT_SERVICE_PACKAGES),
   status: Joi.string().valid(...CLIENT_SERVICE_STATUSES),

@@ -1,3 +1,4 @@
+import { countVatDue } from "./clientVat.service.js";
 import Client from "../models/client.model.js";
 import ClientCompany from "../models/clientCompany.model.js";
 import ClientDriver from "../models/clientDrivers.model.js";
@@ -221,6 +222,7 @@ export const getClientDashboardKPI = async (query, now = new Date()) => {
     vehicleCount,
     driverCount,
     tradeLicense,
+    vatDue,
   ] = await Promise.all([
     Promise.all(renewalRequests),
     Client.countDocuments({}).exec(),
@@ -242,6 +244,7 @@ export const getClientDashboardKPI = async (query, now = new Date()) => {
       "vatTaxRegistrationNumber",
       "corporateTaxNumber",
     ]),
+    countVatDue(now),
   ]);
 
   const renewalTotals = renewalResults.reduce(
@@ -277,7 +280,7 @@ export const getClientDashboardKPI = async (query, now = new Date()) => {
     validAndCompliant: renewalTotals.validAndCompliant,
     totalClients,
     activeCompanies,
-    vatDue: 0,
+    vatDue,
     corporateTax: 0,
     visaEidPassport: clientIdentityCount + memberIdentityCount,
     insuranceAndFleet: vehicleCount + driverCount,

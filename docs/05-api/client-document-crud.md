@@ -50,3 +50,10 @@ successful request returns `200` with:
 | `422` | `VALIDATION_FAILED` | The path, metadata, or multipart file is invalid |
 | `500` | `UPLOAD_CONFIGURATION_ERROR` | Cloudinary is not configured |
 | `500` | `INTERNAL_ERROR` | Cloudinary or persistence failed unexpectedly |
+
+## VAT evidence extension
+
+Uploads may include service (owned VAT service ID) and required purpose
+(SOURCE, WORKING_PAPER, APPROVAL, ACKNOWLEDGMENT, TAX_PAYMENT). Purpose without
+service is rejected. Linked documents are retained and DELETE returns
+409 VAT_HISTORY_RETAINED. Existing unlinked document behavior is unchanged.

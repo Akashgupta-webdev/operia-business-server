@@ -5,6 +5,8 @@ import {
 } from "../../common/services/document-upload.service.js";
 import { ClientNotFoundError } from "../errors/clientDetail.error.js";
 import { ClientDocumentNotFoundError } from "../errors/clientDocument.error.js";
+import ClientService from "../models/clientService.model.js";
+import { ClientVatError } from "../errors/clientVat.error.js";
 import Client from "../models/client.model.js";
 import ClientDocument from "../models/clientDocuments.model.js";
 
@@ -57,6 +59,8 @@ export const addClientDocument = async (
     throw new ClientNotFoundError();
   }
 
+  if (documentInformation.service && !await ClientService.exists({ _id: documentInformation.service, client: clientId, serviceCode: "VAT_RETURN_FILING" })) throw new ClientVatError("VALIDATION_FAILED", "Document service must be a VAT filing belonging to this Client.");
+
   const uploads = await uploadDocuments([file], correlationId);
   const [upload] = uploads;
 
@@ -85,6 +89,8 @@ export const deleteClientDocument = async (documentId) => {
   if (!document) {
     throw new ClientDocumentNotFoundError();
   }
+
+  if (document.service) throw new ClientVatError("VAT_HISTORY_RETAINED", "Service-linked evidence is retained and cannot be deleted.", 409);
 
   const asset = document.cloudinaryPublicId
     ? {

@@ -54,3 +54,10 @@ fields must be omitted. Update bodies accept `null` to clear fields.
 | `404` | `CLIENT_SERVICE_NOT_FOUND` | The selected Service does not exist |
 | `422` | `VALIDATION_FAILED` | The path or body is invalid |
 | `500` | `INTERNAL_ERROR` | The operation failed unexpectedly |
+
+## VAT filing extension
+
+VAT_RETURN_FILING adds company, assignedTo, dueDate and a strictly validated
+details.vat period on creation. VAT-specific lifecycle changes require named
+actions; generic PATCH is limited to fee/admin fields with expectedVersion.
+VAT hard deletion is blocked. See [VAT API](client-vat-filing.md).

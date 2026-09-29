@@ -27,6 +27,10 @@ const clientReminderSchema = new Schema(
       ref: "Client",
       required: [true, "Client reference is required."],
     },
+    service: { type: Schema.Types.ObjectId, ref: "ClientService" },
+    state: { type: String, enum: ["PENDING", "COMPLETED", "CANCELLED"] },
+    scheduledFor: Date,
+    completedAt: Date,
     followupDate: formattedDateField("Follow-up date"),
     remindBefore: {
       type: String,
@@ -58,6 +62,8 @@ const clientReminderSchema = new Schema(
 );
 
 clientReminderSchema.index({ client: 1, followupDate: 1, _id: 1 });
+
+clientReminderSchema.index({ service: 1 }, { unique: true, partialFilterExpression: { service: { $type: "objectId" } }, name: "unique_service_reminder" });
 
 const ClientReminder =
   models.ClientReminder || model("ClientReminder", clientReminderSchema);

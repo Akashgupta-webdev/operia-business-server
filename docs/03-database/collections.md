@@ -321,3 +321,15 @@ Before deployment, run `migrations/2026-09-08-client-company-trade-licence.js`
 with mongosh against the target database while application writes are stopped.
 It moves legacy fields if their destination is absent and removes the old fields.
 Existing nested values take precedence, and the migration is safe to rerun.
+
+## Implemented Client VAT extension
+
+The physical clientServices collection embeds a strict details.vat subdocument
+for one UAE TRN and tax period, with exact decimal totals, review, approval,
+submission, independent settlement and append-only action history. company links
+to ClientCompany; the TRN is a historical snapshot. previousService links cycles.
+VAT dates use midnight UTC Date values representing calendar dates. Existing
+Client APIs continue to accept dd-mm-yyyy input. Linked ClientDocument evidence
+is retained. ClientReminder supports one current task per filing; scheduling
+history is retained in the filing events. Multi-record commands use transactions.
+See ../05-api/client-vat-filing.md for the implemented contract and migration.

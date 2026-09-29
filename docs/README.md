@@ -57,3 +57,8 @@ A behavior change must update the highest-level source of truth first, then all
 affected workflow, API, data, UI, test, and ADR documents in the same change.
 An implementation must not resolve an explicit pending product decision by
 assumption.
+
+UAE VAT filing workflow: [06-workflows/vat-filing.md](06-workflows/vat-filing.md).
+Frontend integration and deployment: [05-api/client-vat-filing.md](05-api/client-vat-filing.md).
+
+Standalone cross-repository frontend handoff: [vat-filing-frontend-handoff.md](vat-filing-frontend-handoff.md). Copy this single file into the frontend repository for its Codex chat.

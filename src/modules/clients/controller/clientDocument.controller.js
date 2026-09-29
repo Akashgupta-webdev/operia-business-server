@@ -1,9 +1,36 @@
 import logger from "../../../logger/index.js";
+import { getClientDocuments as getClientDocumentsService } from "../services/clientDocumentQuery.service.js";
 import { ClientDocumentValidationError } from "../errors/clientDocument.error.js";
 import {
   addClientDocument as addClientDocumentRecord,
   deleteClientDocument as deleteClientDocumentRecord,
 } from "../services/clientDocument.service.js";
+
+// Returns a validated document page with owning Client names and pagination totals.
+// Logs safe failure metadata and delegates errors to the shared response handler.
+export const getClientDocuments = async (req, res, next) => {
+  try {
+    const result = await getClientDocumentsService(req.validatedQuery);
+    return res.status(200).json({
+      data: result.documents,
+      page: result.page,
+      kpi: result.kpi,
+      meta: { correlationId: req.correlationId },
+    });
+  } catch (error) {
+    console.error("Client Document list lookup failed.", {
+      errorName: error.name,
+      errorCode: error.code,
+    });
+    logger.error("Client Document list lookup failed.", {
+      errorName: error.name,
+      errorCode: error.code,
+      actorId: req.user?.id,
+      correlationId: req.correlationId,
+    });
+    return next(error);
+  }
+};
 
 // Converts model validation failures into the same field-addressable contract as Joi failures.
 // This protects the API if persistence constraints become stricter than boundary validation.

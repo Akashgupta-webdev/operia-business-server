@@ -21,6 +21,7 @@ import { getClientDashboardKPI } from "./controller/clientDashboard.controller.j
 import {
   addClientDocument,
   deleteDocument,
+  getClientDocuments,
 } from "./controller/clientDocument.controller.js";
 import {
   createClientService,
@@ -49,6 +50,7 @@ import {
 } from "./validators/clientDocument.validator.js";
 import { validateGetClientDetails } from "./validators/clientParams.validator.js";
 import { validateGetClients } from "./validators/clientQuery.validator.js";
+import { validateGetClientDocuments } from "./validators/clientDocumentQuery.validator.js";
 import {
   validateCreateClientService,
   validateDeleteClientService,
@@ -67,7 +69,16 @@ import {
 import { getClientRenewals } from "./controller/clientRenewal.controller.js";
 import { validateGetClientRenewals } from "./validators/clientRenewal.validator.js";
 
+import { handleVatRequest } from "./controller/clientVat.controller.js";
+import { validateVatRequest, vatActionSchemas } from "./validators/clientVat.validator.js";
+
 const ClientRoute = express.Router();
+
+ClientRoute.get("/services", authorize("ADMIN"), validateVatRequest("list"), handleVatRequest("list"));
+ClientRoute.get("/service/:id", authorize("ADMIN"), validateVatRequest("detail"), handleVatRequest("detail"));
+for (const action of Object.keys(vatActionSchemas)) {
+  ClientRoute.post(`/service/:id/vat/${action}`, authorize("ADMIN"), validateVatRequest(action), handleVatRequest(action));
+}
 
 ClientRoute.patch(
   "/:id/credentials",
@@ -92,6 +103,12 @@ ClientRoute.post(
 );
 
 ClientRoute.get("/", authorize("ADMIN"), validateGetClients, getClients);
+ClientRoute.get(
+  "/documents",
+  authorize("ADMIN"),
+  validateGetClientDocuments,
+  getClientDocuments
+);
 ClientRoute.get(
   "/companies",
   authorize("ADMIN"),

@@ -22,6 +22,8 @@ const clientDocumentSchema = new Schema(
       ref: "Client",
       required: [true, "Client reference is required."],
     },
+    service: { type: Schema.Types.ObjectId, ref: "ClientService" },
+    purpose: { type: String, enum: ["SOURCE", "WORKING_PAPER", "APPROVAL", "ACKNOWLEDGMENT", "TAX_PAYMENT"] },
     documentTitle: {
       type: String,
       trim: true,
@@ -57,6 +59,8 @@ const clientDocumentSchema = new Schema(
 );
 
 clientDocumentSchema.index({ client: 1, createdAt: -1, _id: 1 });
+
+clientDocumentSchema.index({ service: 1, purpose: 1 });
 
 const ClientDocument =
   models.ClientDocument || model("ClientDocument", clientDocumentSchema);

@@ -83,3 +83,15 @@ Integration tests must verify uniqueness conflicts and query behavior. Before
 release, capture query plans for Agent workload, Admin filters, duplicate
 detection, Timeline, overdue Follow-ups, unread Notifications, and the
 Company-scoped Service, Document, Payment, and Reminder queries.
+
+## Implemented Client VAT indexes
+
+- clientServices: unique details.vat.trn + details.vat.periodStart +
+  details.vat.periodEnd, partial on serviceCode VAT_RETURN_FILING.
+- clientServices: unique previousService, partial on ObjectId values.
+- clientServices: serviceCode + status + dueDate + _id for deadline queries.
+- clientDocuments: service + purpose for filing evidence.
+- clientReminders: unique service, partial on ObjectId values (one current task).
+
+Run npm run migrate:vat to create these indexes; it does not drop existing indexes.
+Legacy records without these fields remain valid. See ../06-workflows/vat-filing.md.

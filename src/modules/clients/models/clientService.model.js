@@ -5,6 +5,8 @@ import {
   formattedDateField,
 } from "../../common/models/model.schema.js";
 
+import { clientVatSchema } from "./clientVat.schema.js";
+
 const { Schema, model, models } = mongoose;
 
 export const CLIENT_SERVICE_CATEGORIES = Object.freeze([
@@ -82,6 +84,12 @@ const clientServiceSchema = new Schema(
       ref: "Client",
       required: [true, "Client reference is required."],
     },
+    company: { type: Schema.Types.ObjectId, ref: "ClientCompany" },
+    serviceCode: { type: String, enum: ["VAT_RETURN_FILING"] },
+    assignedTo: { type: Schema.Types.ObjectId, ref: "User" },
+    dueDate: Date,
+    previousService: { type: Schema.Types.ObjectId, ref: "ClientService" },
+    details: { type: new Schema({ vat: clientVatSchema }, { _id: false, strict: "throw" }), default: undefined },
     category: {
       type: String,
       enum: {
@@ -125,7 +133,30 @@ const clientServiceSchema = new Schema(
   createModelOptions("clientServices")
 );
 
+// Rejects incomplete VAT records even when created outside the HTTP validators.
+// Legacy services remain valid without any VAT fields or workflow state.
+clientServiceSchema.pre("validate", function validateVatServiceRecord() {
+  if (this.serviceCode !== "VAT_RETURN_FILING") return;
+  for (const field of ["company", "dueDate", "details.vat"]) {
+    if (!this.get(field)) this.invalidate(field, "VAT filing requires this field.");
+  }
+  if (this.category !== "Tax & Accounting" || this.package !== "Quarterly VAT Return Filing Package") {
+    this.invalidate("package", "VAT filing requires the VAT tax category and package.");
+  }
+  const vat = this.details?.vat;
+  if (vat && !(vat.periodStart <= vat.periodEnd && vat.periodEnd < this.dueDate)) {
+    this.invalidate("dueDate", "VAT deadline must follow a valid period.");
+  }
+  if (vat?.stage === "FILED" && (!vat.submission?.reference || !vat.submission?.acknowledgment || !vat.approval || this.status !== "Completed")) {
+    this.invalidate("details.vat.submission", "Filed returns require approval, evidence and Completed status.");
+  }
+});
+
 clientServiceSchema.index({ client: 1, createdAt: -1, _id: 1 });
+
+clientServiceSchema.index({ "details.vat.trn": 1, "details.vat.periodStart": 1, "details.vat.periodEnd": 1 }, { unique: true, partialFilterExpression: { serviceCode: "VAT_RETURN_FILING" }, name: "unique_vat_period" });
+clientServiceSchema.index({ previousService: 1 }, { unique: true, partialFilterExpression: { previousService: { $type: "objectId" } }, name: "unique_vat_successor" });
+clientServiceSchema.index({ serviceCode: 1, status: 1, dueDate: 1, _id: 1 });
 
 const ClientService =
   models.ClientService || model("ClientService", clientServiceSchema);

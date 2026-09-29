@@ -27,6 +27,7 @@ const nullableNotes = Joi.array()
 export { createClientServiceSchema };
 
 export const updateClientServiceSchema = Joi.object({
+  expectedVersion: Joi.number().integer().min(0).max(Number.MAX_SAFE_INTEGER),
   category: Joi.string()
     .valid(...CLIENT_SERVICE_CATEGORIES)
     .allow(null),

@@ -12,7 +12,10 @@
   "scripts": {
     "start": "node src/server.js",
     "test": "node --test",
-    "dev": "nodemon ./src/server.js"
+    "dev": "nodemon ./src/server.js",
+    "test:vat": "node --test test/client-vat.test.js test/client-vat-api.test.js",
+    "test:vat:integration": "node --test integration/vat.integration.js",
+    "migrate:vat": "node scripts/migrate-vat-indexes.js"
   },
   "engines": {
     "node": ">=24.11.1 <25"

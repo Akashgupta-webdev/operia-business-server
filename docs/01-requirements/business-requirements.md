@@ -253,3 +253,12 @@ The following decisions are still required:
 
 These items are decision points, not implementation gaps to be filled by
 assumption.
+
+## Operio Client extension: UAE VAT filing
+
+The existing Client service module supports ADMIN-managed VAT filing per company
+and tax period. Staff collect evidence, prepare reviewed totals, record internal
+review/client approval, record manual EmaraTax submission and track tax settlement
+separately from fees. History and filed evidence must be retained. Period uniqueness,
+company ownership and optimistic concurrency are mandatory. See
+../06-workflows/vat-filing.md for the implemented scope and lifecycle.

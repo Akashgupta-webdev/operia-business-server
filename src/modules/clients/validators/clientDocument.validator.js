@@ -6,6 +6,8 @@ import { CLIENT_DOCUMENT_TYPES } from "../models/clientDocuments.model.js";
 import { clientMongoIdParamsSchema } from "./clientParams.validator.js";
 
 export const createClientDocumentBodySchema = Joi.object({
+  service: Joi.string().hex().length(24),
+  purpose: Joi.string().valid("SOURCE", "WORKING_PAPER", "APPROVAL", "ACKNOWLEDGMENT", "TAX_PAYMENT").when("service", { is: Joi.exist(), then: Joi.required(), otherwise: Joi.forbidden() }),
   documentTitle: Joi.string().trim().min(1).max(200),
   documentType: Joi.string()
     .valid(...CLIENT_DOCUMENT_TYPES)

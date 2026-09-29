@@ -4,6 +4,8 @@ import {
   deleteUploadedDocuments,
   uploadDocuments,
 } from "../../common/services/document-upload.service.js";
+import { prepareVatServiceCreation } from "./clientVatCreation.service.js";
+import { normalizeVatError } from "../errors/clientVat.error.js";
 import Client from "../models/client.model.js";
 import ClientCompany from "../models/clientCompany.model.js";
 import ClientDocument from "../models/clientDocuments.model.js";
@@ -89,9 +91,11 @@ export const createClientAggregate = async (
         client._id,
         session
       );
+      const serviceValues = [];
+      for (const input of payload.services ?? []) serviceValues.push(await prepareVatServiceCreation(client._id, input, { session, company }));
       const services = await createRelatedRecords(
         ClientService,
-        payload.services,
+        serviceValues,
         client._id,
         session
       );
@@ -135,7 +139,7 @@ export const createClientAggregate = async (
     return result;
   } catch (error) {
     await deleteUploadedDocuments(uploads);
-    throw error;
+    throw normalizeVatError(error);
   } finally {
     if (session) {
       await session.endSession();
