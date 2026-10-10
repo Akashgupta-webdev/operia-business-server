@@ -21,6 +21,7 @@ export const NATIONALITIES = Object.freeze([
 ]);
 
 export const CLIENT_TYPES = Object.freeze(["INDIVIDUAL", "COMPANY"]);
+export const PORTAL_ACCESS_VALUES = Object.freeze(["Enabled", "Disabled"]);
 export const PREFERRED_COMMUNICATION_METHODS = Object.freeze([
   "Email",
   "Whatsapp",
@@ -55,6 +56,11 @@ const clientSchema = new Schema(
     password: {
       type: String,
       select: false,
+    },
+    portalAccess: {
+      type: String,
+      enum: PORTAL_ACCESS_VALUES,
+      default: "Disabled",
     },
     refreshKeyHash: {
       type: String,

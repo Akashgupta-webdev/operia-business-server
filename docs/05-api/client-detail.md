@@ -42,6 +42,11 @@ MongoDB `_id` as a deterministic ascending tie-breaker.
 An existing Client with no records in a related collection returns an empty
 array for that collection.
 
+`data.client` includes `password` (the stored plain-text value, or `null` when
+unset) and `portalAccess` (`Enabled` or `Disabled`, default `Disabled`). Password
+disclosure is specific to this Admin endpoint; other Client serialization still
+omits it. `refreshKeyHash` remains excluded.
+
 ## Errors
 
 | HTTP | Code | Meaning |

@@ -49,7 +49,7 @@ test("validates the Client detail MongoDB identifier", () => {
 
 test("does not query related collections when the Client does not exist", async () => {
   const originalFindById = Client.findById;
-  Client.findById = () => ({ async exec() { return null; } });
+  Client.findById = () => ({ select() { return this; }, async exec() { return null; } });
 
   try {
     await assert.rejects(getClientDetails(new mongoose.Types.ObjectId().toString()), {
@@ -99,9 +99,13 @@ test("serves one Client with records from every related Client model", async () 
     },
   });
   Client.findById = (id) => ({
+    select(fields) {
+      assert.equal(fields, "+password");
+      return this;
+    },
     async exec() {
       assert.equal(id, clientId.toString());
-      return new Client({ _id: clientId, name: "Example Client" });
+      return new Client({ _id: clientId, name: "Example Client", password: "portal-password", refreshKeyHash: "private-digest" });
     },
   });
 
@@ -140,6 +144,9 @@ test("serves one Client with records from every related Client model", async () 
 
     assert.equal(response.status, 200);
     assert.equal(body.data.client.id, clientId.toString());
+    assert.equal(body.data.client.password, "portal-password");
+    assert.equal(body.data.client.portalAccess, "Disabled");
+    assert.equal(body.data.client.refreshKeyHash, undefined);
     assert.deepEqual(Object.keys(body.data), [
       "client",
       "companies",

@@ -12,9 +12,9 @@ import ClientVehicle from "../models/clientVehicles.model.js";
 const RELATED_RECORD_SORT = Object.freeze({ createdAt: -1, _id: 1 });
 
 // Loads one Client and every collection that directly references its MongoDB identifier.
-// Related lookups run together and return deterministic arrays, including when they are empty.
+// Explicitly includes the password only in this Admin detail response; related arrays are deterministic.
 export const getClientDetails = async (clientId) => {
-  const client = await Client.findById(clientId);
+  const client = await Client.findById(clientId).select("+password").exec();
   if (!client) {
     throw new ClientNotFoundError();
   }
@@ -41,7 +41,7 @@ export const getClientDetails = async (clientId) => {
   ]);
 
   return {
-    client,
+    client: { ...client.toJSON(), password: client.password ?? null },
     companies,
     members,
     vehicles,

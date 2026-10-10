@@ -19,7 +19,8 @@ const config = {
 test("credential validation rejects unsafe bodies and oversized passwords", () => {
   for (const body of [undefined, {}, { password: null }, { password: "short" },
     { password: "\u00e9".repeat(37) }, { emailAddress: null }, { emailAddress: "bad" },
-    { name: "Unexpected" }, { password: "x".repeat(73) }]) {
+    { name: "Unexpected" }, { password: "x".repeat(73) },
+    { portalAccess: null }, { portalAccess: "enabled" }, { portalAccess: "Unknown" }]) {
     assert.ok(updateClientCredentialsSchema.validate(body).error);
   }
   assert.equal(updateClientCredentialsSchema.validate({ password: "\u00e9".repeat(36) }).error, undefined);
@@ -27,6 +28,11 @@ test("credential validation rejects unsafe bodies and oversized passwords", () =
   assert.equal(Client.schema.path("password").options.select, false);
   assert.equal(new Client({ name: "Legacy" }).validateSync(), undefined);
   assert.equal(new Client({ password: "plaintext" }).validateSync(), undefined);
+  assert.equal(new Client().portalAccess, "Disabled");
+  assert.ok(new Client({ portalAccess: "Unknown" }).validateSync());
+  for (const portalAccess of ["Enabled", "Disabled"]) {
+    assert.equal(updateClientCredentialsSchema.validate({ portalAccess }).error, undefined);
+  }
 });
 
 test("credential API protects access, stores plain-text passwords, preserves omitted values and handles failures", async () => {
@@ -69,11 +75,12 @@ test("credential API protects access, stores plain-text passwords, preserves omi
     assert.equal(invalid.response.status, 422);
     assert.ok(!JSON.stringify(invalid.body).includes("secret"));
     assert.equal((await request({ password: "new-password" }, true, "bad-id")).response.status, 422);
-    const result = await request({ emailAddress: " NEW@EXAMPLE.COM ", password: " new-password " });
+    const result = await request({ emailAddress: " NEW@EXAMPLE.COM ", password: " new-password ", portalAccess: "Enabled" });
     assert.equal(result.response.status, 200);
     assert.equal(result.response.headers.get("etag"), '"1"');
     assert.equal(result.body.data.emailAddress, "new@example.com");
     assert.equal(result.body.data.password, undefined);
+    assert.equal(result.body.data.portalAccess, "Enabled");
     assert.equal(client.toObject().password, undefined);
     assert.equal(client.password, " new-password ");
     const originalPassword = client.password;
@@ -83,6 +90,13 @@ test("credential API protects access, stores plain-text passwords, preserves omi
     assert.equal(client.emailAddress, "other@example.com");
     assert.equal(client.password, "replacement-password");
     assert.notEqual(client.password, originalPassword);
+    assert.equal(client.portalAccess, "Enabled");
+    const accessResult = await request({ portalAccess: "Disabled" });
+    assert.equal(accessResult.response.status, 200);
+    assert.equal(client.portalAccess, "Disabled");
+    assert.equal(client.password, "replacement-password");
+    assert.equal(client.emailAddress, "other@example.com");
+    assert.equal((await request({ portalAccess: "enabled" })).response.status, 422);
     found = false;
     const missing = await request({ emailAddress: "missing@example.com" });
     assert.equal(missing.response.status, 404);
