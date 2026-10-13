@@ -18,7 +18,9 @@ Supply one or more fields in a JSON body:
   not trimmed. The service stores the supplied password in plain text.
 - Omitted fields remain unchanged. Empty bodies, null values, and unknown fields
   are rejected with `422 VALIDATION_FAILED`.
-- Portal access accepts exactly `Enabled` or `Disabled` and defaults to `Disabled`.
+- Portal access accepts `Enabled` or `Disabled` and defaults to `Disabled`.
+  The aliases `Enable` and `Disable` are also accepted and normalized to `Enabled`
+  and `Disabled` respectively before storage; responses use the canonical values.
   It may be updated independently. This field does not change authentication behavior.
 - Success: `200`, safe Client in `data`, correlation ID in `meta`, version in `ETag`.
 - Missing authentication: `401`; non-Admin: `403`; missing Client:

@@ -4,7 +4,7 @@ import { ClientUpdateValidationError } from "../errors/clientUpdate.error.js";
 import { clientMongoIdParamsSchema } from "./clientParams.validator.js";
 
 export const updateClientCredentialsSchema = Joi.object({
-  portalAccess: Joi.string().valid(...PORTAL_ACCESS_VALUES),
+  portalAccess: Joi.string().replace(/^Enable$/, "Enabled").replace(/^Disable$/, "Disabled").valid(...PORTAL_ACCESS_VALUES),
   emailAddress: Joi.string().trim().lowercase().email({ tlds: { allow: false } }).max(254),
   password: Joi.string().min(8).custom(function validatePasswordByteLength(value, helpers) {
     // Preserves the documented password size limit without trimming the supplied value.
@@ -23,7 +23,7 @@ export const validateUpdateClientCredentials = (req, _res, next) => {
   if (errors.length) {
     return next(new ClientUpdateValidationError(errors.map(() => ({
       field: "credentials",
-      issue: "Supply a valid client id and emailAddress, password (8 characters minimum, 72 UTF-8 bytes maximum), or portalAccess (Enabled or Disabled); no other fields are allowed.",
+      issue: "Supply a valid client id and emailAddress, password (8 characters minimum, 72 UTF-8 bytes maximum), or portalAccess (Enabled/Enable or Disabled/Disable); no other fields are allowed.",
     }))));
   }
   req.validatedParams = params.value;

@@ -97,6 +97,16 @@ test("credential API protects access, stores plain-text passwords, preserves omi
     assert.equal(client.password, "replacement-password");
     assert.equal(client.emailAddress, "other@example.com");
     assert.equal((await request({ portalAccess: "enabled" })).response.status, 422);
+    for (const [alias, canonical] of [["Enable", "Enabled"], ["Disable", "Disabled"]]) {
+      const aliasResult = await request({ portalAccess: alias });
+      assert.equal(aliasResult.response.status, 200);
+      assert.equal(aliasResult.body.data.portalAccess, canonical);
+      assert.equal(client.portalAccess, canonical);
+      assert.equal(client.password, "replacement-password");
+      assert.equal(client.emailAddress, "other@example.com");
+      await updateClientCredentials(client.id, { portalAccess: alias });
+      assert.equal(client.portalAccess, canonical);
+    }
     found = false;
     const missing = await request({ emailAddress: "missing@example.com" });
     assert.equal(missing.response.status, 404);
