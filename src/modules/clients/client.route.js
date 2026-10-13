@@ -1,4 +1,11 @@
 import express from "express";
+import {
+  getClientForAddingInComplianceService,
+  getClientAddedInComplianceService,
+  AddClientInComplianceService,
+  RemoveClientFromComplianceService,
+} from "./controller/clientCompliance.controller.js";
+import { validateClientCompliance } from "./validators/clientCompliance.validator.js";
 import { updateClientCredentials } from "./controller/clientCredentials.controller.js";
 import { validateUpdateClientCredentials } from "./validators/clientCredentials.validator.js";
 
@@ -73,6 +80,11 @@ import { handleVatRequest } from "./controller/clientVat.controller.js";
 import { validateVatRequest, vatActionSchemas } from "./validators/clientVat.validator.js";
 
 const ClientRoute = express.Router();
+
+ClientRoute.get("/getClientForAddingInComplianceService", authorize("ADMIN"), validateClientCompliance("query"), getClientForAddingInComplianceService);
+ClientRoute.get("/getClientAddedInComplianceService", authorize("ADMIN"), validateClientCompliance("query"), getClientAddedInComplianceService);
+ClientRoute.patch("/AddClientInComplianceService", authorize("ADMIN"), validateClientCompliance("body"), AddClientInComplianceService);
+ClientRoute.patch("/RemoveClientFromComplianceService", authorize("ADMIN"), validateClientCompliance("body"), RemoveClientFromComplianceService);
 
 ClientRoute.get("/services", authorize("ADMIN"), validateVatRequest("list"), handleVatRequest("list"));
 ClientRoute.get("/service/:id", authorize("ADMIN"), validateVatRequest("detail"), handleVatRequest("detail"));

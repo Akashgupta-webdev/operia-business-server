@@ -83,6 +83,10 @@ const clientSchema = new Schema(
       enum: CLIENT_STATUSES,
       default: "Active",
     },
+    complianceService: {
+      type: Boolean,
+      default: false,
+    },
     preferredCommunicationMethod: {
       type: String,
       enum: PREFERRED_COMMUNICATION_METHODS,
