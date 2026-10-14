@@ -5,10 +5,10 @@ authentication and response/error envelopes.
 
 | Method | Route | Purpose |
 | --- | --- | --- |
-| GET | `/api/v1/client/getClientForAddingInComplianceService` | Clients with false or missing complianceService |
-| GET | `/api/v1/client/getClientAddedInComplianceService` | Clients with complianceService true |
-| PATCH | `/api/v1/client/AddClientInComplianceService` | Set complianceService true |
-| PATCH | `/api/v1/client/RemoveClientFromComplianceService` | Set complianceService false |
+| GET | `/api/v1/client/compliance/eligible-clients` | Clients with false or missing complianceService |
+| GET | `/api/v1/client/compliance/clients` | Clients with complianceService true |
+| PATCH | `/api/v1/client/compliance/enrollment` | Set complianceService true |
+| PATCH | `/api/v1/client/compliance/withdrawal` | Set complianceService false |
 
 GET requests have no body. Optional query parameters are `page` (integer >= 1,
 default 1), `limit` (integer 1-100, default 20), and `search` (trimmed 1-100
@@ -51,7 +51,7 @@ The available list also handles missing fields before migration.
 
 ## Added-client filing information
 
-`getClientAddedInComplianceService` additionally returns
+`compliance/clients` additionally returns
 `vatTaxRegistrationNumber` from the newest displayed company (null if missing),
 `lastFilingDate`, and `nextDueDate`. The two dates are from the same ClientVATFiling
 record: the greatest non-null `filingDate` for that client across its companies,
@@ -62,8 +62,8 @@ Dates in this response are ISO 8601 UTC strings.
 The top-level `metrics` object contains counts across **all compliance-enabled
 clients**, independent of search and pagination:
 
-- `totalTaxFilings`: ClientVATFiling plus ClientTAXFiling records with `status: "complete"`.
-- `actionRequired`: records in either collection with status `pending` or `complete`
+- `totalTaxFilings`: ClientVATFiling plus ClientTAXFiling records with `status: "paid"`.
+- `actionRequired`: records in either collection with status `pending` or `paid`
   and `today < nextDueDate <= today + 15 days`. Today uses the existing UAE
   (Asia/Dubai) calendar date; today and overdue dates are excluded, day 15 is included.
 - Cancelled filings and filings for non-enabled or missing clients are excluded.
@@ -86,6 +86,28 @@ clients**, independent of search and pagination:
 
 ## Standalone filing models
 
+### Paginated filing lists
+
+- `GET /api/v1/client/:id/vat-filings?page=1&limit=20`
+- `GET /api/v1/client/:id/tax-filings?page=1&limit=20`
+
+Both routes require an authenticated active ADMIN. `id` is the client's
+24-character hexadecimal `_id`. Query parameters are optional: `page` defaults
+to 1 (integer >= 1); `limit` defaults to 20 (integer 1-100). Unknown query fields
+are rejected. Invalid input returns 422; a missing client returns 404
+CLIENT_NOT_FOUND. Authentication and role failures return 401 and 403.
+
+Each route returns only its filing collection, scoped to the client across all
+companies and statuses. Sort is filingDate descending, then _id descending;
+undated filings follow dated filings. The existing filing index supports this order.
+Results use the model's JSON representation, including `payableTax`.
+
+Response: `{ data: [filing], page: { page, limit, total, totalPages },
+meta: { correlationId } }`. An existing client without filings returns an empty
+array and zero totals. An out-of-range page returns an empty array with the
+actual total and totalPages. These lists read standalone filings, not ClientService
+VAT workflow records.
+
 `ClientVATFiling` (`clientVATFilings`) and `ClientTAXFiling` (`clientTAXFilings`)
 share these fields:
 
@@ -97,7 +119,7 @@ share these fields:
 | `payableTax` | Read-only virtual decimal string, exactly input minus output; may be negative |
 | `filingDate` | Optional Date, allowing a pending record before actual filing |
 | `nextDueDate` | Required Date |
-| `status` | `pending` (default), `complete`, or `cancelled` |
+| `status` | `draft`, `pending` (default), `submitted`, `paid`, `overdue`, or `rejected` |
 
 Both models include the standard timestamps and optimistic-concurrency version.
 Money calculations reuse exact minor-unit arithmetic. Payable tax is calculated
@@ -113,3 +135,32 @@ ObjectId refs alone do not enforce ownership or existence.
 Run `node scripts/migrate-client-filing-indexes.js` with MONGODB_URI configured
 to create the new collection indexes before deployment. It does not rewrite
 existing records.
+
+## Single-client compliance information
+
+`GET /api/v1/client/:id/compliance` requires an active
+ADMIN and a valid Client ObjectId. Missing clients return 404 CLIENT_NOT_FOUND;
+invalid identifiers return 422 VALIDATION_FAILED.
+
+The response is `{ data, metrics, meta: { correlationId } }`. `data` contains
+`_id`, `name`, `nationality`, `mobileNumber`, `emailAddress`, `status`,
+`companyName`, `vatTaxRegistrationNumber`, `corporateTaxNumber`, `nextVATDue`,
+and `nextTAXDue`. Company fields come from the newest company (createdAt
+descending, _id ascending). Missing values, including missing companies, are null.
+Client compliance membership does not restrict this administrator detail endpoint.
+
+ClientCompany now stores optional Date fields `complianceDueDate.nextVATDue`
+and `complianceDueDate.nextTAXDue`. Supply calendar dates as midnight UTC; the
+endpoint returns ISO UTC strings. This change does not add company write API fields.
+
+`metrics.totalFiling` counts VAT and TAX records with status `paid`
+for the client across all companies. `metrics.dueSoon` counts the displayed
+company's two dates from today through today + 30 days, inclusive.
+`metrics.overdue` counts those strictly before today. Today is the UAE calendar
+day; absent dates count toward neither metric. Deadline counts range from 0 to 2.
+
+Paid filings are considered complete for both compliance filing totals. Statuses
+use the existing lowercase storage convention, with `pending` as the default.
+The enum excludes `paic`, `complete`, and `cancelled`. Existing records are not
+rewritten; legacy statuses do not count toward totals and must be changed to an
+allowed status before saving. No database migration is performed by this change.

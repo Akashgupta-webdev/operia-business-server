@@ -30,7 +30,7 @@ for (const Model of [ClientVATFiling, ClientTAXFiling]) {
     filing.input = "1.00";
     filing.status = "completed";
     await assert.rejects(filing.validate(), /not a valid enum/);
-    filing.status = "complete";
+    filing.status = "submitted";
     filing.nextDueDate = "31-02-2026";
     await assert.rejects(filing.validate(), /Cast to Date failed/);
     const invalid = new Model({});
@@ -63,8 +63,8 @@ test("metrics include both sources and enforce the confirmed date boundaries in 
   assert.deepEqual(pipeline.slice(1, 3).map((stage) => stage.$lookup.from), ["clientVATFilings", "clientTAXFilings"]);
   for (const stage of pipeline.slice(1, 3)) {
     const lookup = stage.$lookup.pipeline;
-    assert.deepEqual(lookup[0].$match.status, { $in: ["pending", "complete"] });
-    assert.deepEqual(lookup[1].$group.totalTaxFilings.$sum.$cond[0], { $eq: ["$status", "complete"] });
+    assert.deepEqual(lookup[0].$match.status, { $in: ["pending", "paid"] });
+    assert.deepEqual(lookup[1].$group.totalTaxFilings.$sum.$cond[0], { $eq: ["$status", "paid"] });
     const range = lookup[1].$group.actionRequired.$sum.$cond[0].$and;
     assert.equal(range[0].$gt[1].toISOString(), "2026-10-14T00:00:00.000Z");
     assert.equal(range[1].$lte[1].toISOString(), "2026-10-29T00:00:00.000Z");

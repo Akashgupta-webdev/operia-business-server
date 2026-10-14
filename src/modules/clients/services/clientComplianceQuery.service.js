@@ -44,10 +44,10 @@ export function buildComplianceMetricsPipeline(now = new Date()) {
         from: model.collection.name,
         let: { clientId: "$_id" },
         pipeline: [
-          { $match: { $expr: { $eq: ["$client", "$$clientId"] }, status: { $in: ["pending", "complete"] } } },
+          { $match: { $expr: { $eq: ["$client", "$$clientId"] }, status: { $in: ["pending", "paid"] } } },
           { $group: {
             _id: null,
-            totalTaxFilings: { $sum: { $cond: [{ $eq: ["$status", "complete"] }, 1, 0] } },
+            totalTaxFilings: { $sum: { $cond: [{ $eq: ["$status", "paid"] }, 1, 0] } },
             actionRequired: { $sum: { $cond: [{ $and: [
               { $gt: ["$nextDueDate", today] },
               { $lte: ["$nextDueDate", horizon] },

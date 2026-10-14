@@ -65,7 +65,7 @@ test("compliance HTTP routes enforce authorization, validation, membership updat
   const base = `http://127.0.0.1:${server.address().port}/api/v1/client/`;
   const tokens = issueTokenPair({ id: "user-123", role: "ADMIN" }, "session-123", config);
   const headers = { Cookie: `accessToken=${tokens.accessToken}`, "Content-Type": "application/json" };
-  for (const route of ["getClientForAddingInComplianceService", "getClientAddedInComplianceService"]) {
+  for (const route of ["compliance/eligible-clients", "compliance/clients"]) {
     assert.equal((await fetch(base + route)).status, 401);
     const response = await fetch(base + route, { headers });
     assert.equal(response.status, 200);
@@ -73,7 +73,7 @@ test("compliance HTTP routes enforce authorization, validation, membership updat
     assert.deepEqual(body.data, []);
     assert.deepEqual(body.page, { page: 1, limit: 20, total: 0, totalPages: 0 });
     assert.ok(body.meta.correlationId);
-    if (route === "getClientAddedInComplianceService") {
+    if (route === "compliance/clients") {
       assert.deepEqual(body.metrics, { totalTaxFilings: 0, actionRequired: 0 });
     } else {
       assert.equal(body.metrics, undefined);
@@ -83,7 +83,7 @@ test("compliance HTTP routes enforce authorization, validation, membership updat
     assert.equal((await fetch(base + route, { headers })).status, 403);
     role = "ADMIN";
   }
-  for (const [route, target] of [["AddClientInComplianceService", true], ["RemoveClientFromComplianceService", false]]) {
+  for (const [route, target] of [["compliance/enrollment", true], ["compliance/withdrawal", false]]) {
     const request = { method: "PATCH", headers, body: JSON.stringify({ _id: client._id.toString() }) };
     assert.equal((await fetch(base + route, { ...request, headers: { "Content-Type": "application/json" } })).status, 401);
     role = "AGENT";
@@ -103,7 +103,7 @@ test("compliance HTTP routes enforce authorization, validation, membership updat
     exists = true;
   }
   failList = true;
-  const failed = await fetch(base + "getClientAddedInComplianceService", { headers });
+  const failed = await fetch(base + "compliance/clients", { headers });
   assert.equal(failed.status, 500);
   assert.equal((await failed.json()).error.message, "An unexpected error occurred.");
 });

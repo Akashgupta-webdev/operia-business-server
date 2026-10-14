@@ -2,7 +2,7 @@ import mongoose from "mongoose";
 import { createModelOptions } from "../../common/models/model.schema.js";
 import { formatVatAmount, parseVatDate, vatMinorUnits } from "../utils/clientVat.utils.js";
 
-export const CLIENT_FILING_STATUSES = Object.freeze(["pending", "complete", "cancelled"]);
+export const CLIENT_FILING_STATUSES = Object.freeze(["draft", "pending", "submitted", "paid", "overdue", "rejected"]);
 
 // Validates decimal money using the existing exact, two-decimal financial policy.
 // Invalid precision and out-of-range amounts fail schema validation before persistence.

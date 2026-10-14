@@ -41,6 +41,10 @@ const clientCompanySchema = new Schema(
       type: String,
       trim: true,
     },
+    complianceDueDate: {
+      nextVATDue: { type: Date },
+      nextTAXDue: { type: Date },
+    },
   },
   createModelOptions("clientCompanies")
 );

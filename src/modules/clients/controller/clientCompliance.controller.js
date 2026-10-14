@@ -1,4 +1,5 @@
 import logger from "../../../logger/index.js";
+import { getClientInformationForCompliance as getComplianceInformation } from "../services/clientComplianceInformation.service.js";
 import { getClients } from "../services/clientQuery.service.js";
 import { getAddedComplianceClients } from "../services/clientComplianceQuery.service.js";
 import { updateClientInformation } from "../services/clientUpdate.service.js";
@@ -48,3 +49,20 @@ export const getClientForAddingInComplianceService = createComplianceListHandler
 export const getClientAddedInComplianceService = createComplianceListHandler(true);
 export const AddClientInComplianceService = createComplianceUpdateHandler(true);
 export const RemoveClientFromComplianceService = createComplianceUpdateHandler(false);
+
+// Returns one client's compliance details and filing/deadline metrics.
+// The service owns database access; failures use the shared response error handler.
+export async function getClientInformationForCompliance(req, res, next) {
+  try {
+    const result = await getComplianceInformation(req.validatedParams.id);
+    return res.status(200).json({
+      data: result.information,
+      metrics: result.metrics,
+      meta: { correlationId: req.correlationId },
+    });
+  } catch (error) {
+    console.error("Client compliance information lookup failed.", { errorName: error.name, errorCode: error.code });
+    logger.error("Client compliance information lookup failed.", { errorName: error.name, correlationId: req.correlationId });
+    return next(error);
+  }
+}

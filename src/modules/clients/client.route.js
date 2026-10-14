@@ -1,5 +1,8 @@
 import express from "express";
+import { getClientVATFilings, getClientTAXFilings } from "./controller/clientFiling.controller.js";
+import { validateClientFilingQuery } from "./validators/clientFilingQuery.validator.js";
 import {
+  getClientInformationForCompliance,
   getClientForAddingInComplianceService,
   getClientAddedInComplianceService,
   AddClientInComplianceService,
@@ -81,10 +84,15 @@ import { validateVatRequest, vatActionSchemas } from "./validators/clientVat.val
 
 const ClientRoute = express.Router();
 
-ClientRoute.get("/getClientForAddingInComplianceService", authorize("ADMIN"), validateClientCompliance("query"), getClientForAddingInComplianceService);
-ClientRoute.get("/getClientAddedInComplianceService", authorize("ADMIN"), validateClientCompliance("query"), getClientAddedInComplianceService);
-ClientRoute.patch("/AddClientInComplianceService", authorize("ADMIN"), validateClientCompliance("body"), AddClientInComplianceService);
-ClientRoute.patch("/RemoveClientFromComplianceService", authorize("ADMIN"), validateClientCompliance("body"), RemoveClientFromComplianceService);
+ClientRoute.get("/:id/vat-filings", authorize("ADMIN"), validateGetClientDetails, validateClientFilingQuery, getClientVATFilings);
+ClientRoute.get("/:id/tax-filings", authorize("ADMIN"), validateGetClientDetails, validateClientFilingQuery, getClientTAXFilings);
+
+ClientRoute.get("/:id/compliance", authorize("ADMIN"), validateGetClientDetails, getClientInformationForCompliance);
+
+ClientRoute.get("/compliance/eligible-clients", authorize("ADMIN"), validateClientCompliance("query"), getClientForAddingInComplianceService);
+ClientRoute.get("/compliance/clients", authorize("ADMIN"), validateClientCompliance("query"), getClientAddedInComplianceService);
+ClientRoute.patch("/compliance/enrollment", authorize("ADMIN"), validateClientCompliance("body"), AddClientInComplianceService);
+ClientRoute.patch("/compliance/withdrawal", authorize("ADMIN"), validateClientCompliance("body"), RemoveClientFromComplianceService);
 
 ClientRoute.get("/services", authorize("ADMIN"), validateVatRequest("list"), handleVatRequest("list"));
 ClientRoute.get("/service/:id", authorize("ADMIN"), validateVatRequest("detail"), handleVatRequest("detail"));
