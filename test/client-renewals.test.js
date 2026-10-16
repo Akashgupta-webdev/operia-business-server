@@ -30,17 +30,19 @@ test("renewals route precedes the Client id route and validates pagination", () 
   }
 });
 
-test("all fourteen expiry mappings are combined before global date sorting and pagination", () => {
+test("all sixteen expiry mappings are combined before global date sorting and pagination", () => {
   const pipeline = buildClientRenewalsPipeline({ page: 2, limit: 10 });
   const unions = pipeline.filter((stage) => stage.$unionWith).map((stage) => stage.$unionWith);
   assert.deepEqual(unions.map((union) => union.coll), ["clientMembers", "clientCompanies", "clientDocuments", "clientDrivers", "clientVehicles"]);
   const sources = [pipeline, ...unions.map((union) => union.pipeline)];
   const rows = sources.flatMap((stages) => stages[0].$project.renewals);
-  assert.equal(rows.length, 14);
+  assert.equal(rows.length, 16);
   assert.deepEqual(rows.map((row) => row.expiryDate.$ifNull[0]), [
     "$passport.passportExpiryDate", "$emirates.emiratesExpiryDate", "$visa.visaExpiryDate", "$healthInsurance.healthInsuranceExpiryDate",
     "$passport.passportExpiryDate", "$emirates.emiratesExpiryDate", "$visa.visaExpiryDate", "$healthInsurance.healthInsuranceExpiryDate",
-    "$establishment.establishmentCardExpiry", "$tradeLicence.tradeLicenceExpiry", "$expiryDate", "$licenceExpiryDate", "$registrationExpiry", "$insuranceExpiry",
+    "$establishment.establishmentCardExpiry", "$tradeLicence.tradeLicenceExpiry",
+    "$civilDefenceCertificate.expiryDate", "$commercialTradeLicence.expiryDate",
+    "$expiryDate", "$licenceExpiryDate", "$registrationExpiry", "$insuranceExpiry",
   ]);
   for (const stages of sources) {
     assert.equal(stages[2].$set.expirySortDate.$dateFromString.onError, null);

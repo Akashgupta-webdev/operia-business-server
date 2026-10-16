@@ -1,5 +1,29 @@
 # Client Company Information Update API
 
+## Update VAT or TAX Due Dates
+
+`PATCH /api/v1/client/updateNextVATorTAXDueDate/{companyId}` requires an
+authenticated, active Admin. `companyId` is the Company's own 24-character
+MongoDB identifier, not the owning Client id.
+
+```json
+{
+  "nextVATDue": "2030-01-01T00:00:00.000Z",
+  "nextTAXDue": "2030-02-01T00:00:00.000Z"
+}
+```
+
+Both fields are optional individually, but at least one must be supplied.
+Values must be ISO dates; use midnight UTC for calendar dates. Null, empty
+bodies, unknown fields, and invalid identifiers or dates return `422 VALIDATION_FAILED`.
+Only supplied fields inside `complianceDueDate` are updated; omitted fields
+are preserved. Success returns `200`, the complete Company in `data`, correlation
+metadata, and its version in `ETag`. A missing Company returns
+`404 CLIENT_COMPANY_NOT_FOUND`. Authentication and authorization use the same
+`401`/`403` contract as the Company information endpoint below.
+
+## Update Company Information
+
 This is the frontend integration contract for partially updating the Company
 record associated with an existing Client.
 
@@ -26,6 +50,40 @@ and `updatedAt`, are rejected.
 | `establishment.establishmentCardExpiry` | Optional; `null` or a date string in `dd-mm-yyyy` format |
 | `vatTaxRegistrationNumber` | `null` or a non-empty trimmed string up to 100 characters |
 | `corporateTaxNumber` | `null` or a non-empty trimmed string up to 100 characters |
+| `civilDefenceCertificate.certificationNo` | Optional nullable document number, using the format policy below |
+| `civilDefenceCertificate.expiryDate` | Optional nullable real calendar date in `dd-mm-yyyy`, year 1900 or later |
+| `commercialTradeLicence.licenceNo` | Optional nullable document number, using the format policy below |
+| `commercialTradeLicence.expiryDate` | Optional nullable real calendar date in `dd-mm-yyyy`, year 1900 or later |
+
+The two new objects support partial nested updates and null clearing of either
+individual fields or the whole object. Omitted siblings remain unchanged.
+Both are optional, so existing records need no backfill or database rewrite.
+Their expiries appear separately in GET `/api/v1/client/renewals`.
+
+Document number policy: trimmed strings of 1-100 characters, containing at
+least one ASCII digit; letters and digits may be separated by single spaces,
+dots, slashes or hyphens. Leading zeros and letter case are preserved.
+Empty strings, other characters and unknown nested fields are rejected.
+This is an application format check, not verification of issuance or a
+UAE-wide official number specification. No universal format was established
+from the [DET licensing information](https://www.dubaidet.gov.ae/en/licences-and-permits/business-licensing)
+and [MOI certificate inquiry](https://cdservices.moi.gov.ae/index/certificate-inquiry)
+reviewed. Authority-specific verification requires the relevant issuing authority.
+
+Example partial payload (illustrative identifiers):
+
+```json
+{
+  "civilDefenceCertificate": {
+    "certificationNo": "LCA0000237232-2026",
+    "expiryDate": "31-12-2027"
+  },
+  "commercialTradeLicence": {
+    "licenceNo": "CN-1234567",
+    "expiryDate": "30-06-2027"
+  }
+}
+```
 
 The current Client Company model has no enum-backed select fields, so there
 are no select options for this endpoint. All editable fields are text inputs

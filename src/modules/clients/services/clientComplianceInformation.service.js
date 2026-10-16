@@ -15,8 +15,8 @@ export async function getClientInformationForCompliance(clientId, now = new Date
   const [company, vat, tax] = await Promise.all([
     ClientCompany.findOne({ client: clientId }).sort({ createdAt: -1, _id: 1 })
       .select("companyName vatTaxRegistrationNumber corporateTaxNumber complianceDueDate").lean().exec(),
-    ClientVATFiling.countDocuments({ client: clientId, status: "paid" }).exec(),
-    ClientTAXFiling.countDocuments({ client: clientId, status: "paid" }).exec(),
+    ClientVATFiling.countDocuments({ client: clientId, status: "Paid" }).exec(),
+    ClientTAXFiling.countDocuments({ client: clientId, status: "Paid" }).exec(),
   ]);
   const information = {};
   for (const field of ["_id", "name", "nationality", "mobileNumber", "emailAddress", "status"]) {

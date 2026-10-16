@@ -62,8 +62,8 @@ Dates in this response are ISO 8601 UTC strings.
 The top-level `metrics` object contains counts across **all compliance-enabled
 clients**, independent of search and pagination:
 
-- `totalTaxFilings`: ClientVATFiling plus ClientTAXFiling records with `status: "paid"`.
-- `actionRequired`: records in either collection with status `pending` or `paid`
+- `totalTaxFilings`: ClientVATFiling plus ClientTAXFiling records with `status: "Paid"`.
+- `actionRequired`: records in either collection with status `Pending` or `Paid`
   and `today < nextDueDate <= today + 15 days`. Today uses the existing UAE
   (Asia/Dubai) calendar date; today and overdue dates are excluded, day 15 is included.
 - Cancelled filings and filings for non-enabled or missing clients are excluded.
@@ -119,18 +119,70 @@ share these fields:
 | `payableTax` | Read-only virtual decimal string, exactly input minus output; may be negative |
 | `filingDate` | Optional Date, allowing a pending record before actual filing |
 | `nextDueDate` | Required Date |
-| `status` | `draft`, `pending` (default), `submitted`, `paid`, `overdue`, or `rejected` |
+| `periodStart`, `periodEnd` | Optional strings in `MM-YYYY` format, e.g. `01-2026` and `03-2026`; months must be `01` through `12` |
+| `notes` | Optional trimmed string |
+| `status` | `Draft`, `Pending` (default), `Submitted`, `Paid`, `Overdue`, or `Rejected` |
 
 Both models include the standard timestamps and optimistic-concurrency version.
+Period fields preserve the month-year string rather than storing a full Date.
+These additive fields require no data backfill: existing records may omit them.
 Money calculations reuse exact minor-unit arithmetic. Payable tax is calculated
 on hydrated documents and included in toJSON/toObject; it is not a stored field
 or an aggregation/lean field. Date setters accept the existing dd-mm-yyyy format
 or Mongoose Date inputs. Supply date-only values at midnight UTC.
 
 These are new standalone collections; existing ClientService VAT workflow records
-are not migrated or included in these metrics. No filing write routes are introduced.
-Future write services must verify that the company belongs to the client, as
-ObjectId refs alone do not enforce ownership or existence.
+are not migrated or included in these metrics. Filing writes derive client ownership
+from the company and verify that ownership on updates.
+
+### Filing create, update, and delete
+
+All six routes require an authenticated active ADMIN:
+
+| Method | Route |
+| --- | --- |
+| POST | `/api/v1/client/createFilingVAT/:companyId` |
+| PATCH | `/api/v1/client/updateFilingVAT/:id` |
+| DELETE | `/api/v1/client/deleteFilingVAT/:id` |
+| POST | `/api/v1/client/createFilingTAX/:companyId` |
+| PATCH | `/api/v1/client/updateFilingTAX/:id` |
+| DELETE | `/api/v1/client/deleteFilingTAX/:id` |
+
+Create uses the Company id; update/delete use the filing's own id in the
+route-selected collection. All identifiers must be 24 hexadecimal characters.
+
+```json
+{
+  "periodStart": "01-2026",
+  "periodEnd": "03-2026",
+  "status": "Pending",
+  "input": "100.00",
+  "output": "40.00",
+  "filingDate": "01-04-2026",
+  "nextDueDate": "28-04-2026"
+}
+```
+
+Create requires periodStart, periodEnd, input, output, and nextDueDate.
+Status defaults to Pending; filingDate is optional. PATCH accepts any nonempty
+subset of these seven fields. Unknown fields (including notes, client, company,
+and version) and null values are rejected. Periods use MM-YYYY; dates accept
+dd-mm-yyyy or ISO dates. Decimal strings are recommended for exact money values.
+Omitted fields are preserved. Delete accepts no body fields.
+
+Create derives client from the company. Create and PATCH with nextDueDate update
+`complianceDueDate.nextVATDue` or `complianceDueDate.nextTAXDue` respectively.
+The filing and company saves share a MongoDB transaction, requiring a replica
+set or sharded deployment. The supplied deadline replaces the company deadline
+even when editing an older filing. Delete leaves the company deadline unchanged.
+
+Create returns 201; update returns 200. Both return `{ data: filing, meta: {
+correlationId } }` and an ETag for the filing version. Delete returns 200 with
+`{ data: { id, deleted: true }, meta: { correlationId } }`.
+Missing filings return 404 CLIENT_FILING_NOT_FOUND; missing companies return
+404 CLIENT_COMPANY_NOT_FOUND. Invalid input returns 422 VALIDATION_FAILED;
+ownership mismatch returns 409 FILING_COMPANY_MISMATCH, and optimistic
+concurrency failure returns 409 VERSION_CONFLICT.
 
 Run `node scripts/migrate-client-filing-indexes.js` with MONGODB_URI configured
 to create the new collection indexes before deployment. It does not rewrite
@@ -151,16 +203,19 @@ Client compliance membership does not restrict this administrator detail endpoin
 
 ClientCompany now stores optional Date fields `complianceDueDate.nextVATDue`
 and `complianceDueDate.nextTAXDue`. Supply calendar dates as midnight UTC; the
-endpoint returns ISO UTC strings. This change does not add company write API fields.
+endpoint returns ISO UTC strings. To update these dates, use the dedicated
+`updateNextVATorTAXDueDate` endpoint documented in `client-company-update.md`.
 
-`metrics.totalFiling` counts VAT and TAX records with status `paid`
+`metrics.totalFiling` counts VAT and TAX records with status `Paid`
 for the client across all companies. `metrics.dueSoon` counts the displayed
 company's two dates from today through today + 30 days, inclusive.
 `metrics.overdue` counts those strictly before today. Today is the UAE calendar
 day; absent dates count toward neither metric. Deadline counts range from 0 to 2.
 
 Paid filings are considered complete for both compliance filing totals. Statuses
-use the existing lowercase storage convention, with `pending` as the default.
-The enum excludes `paic`, `complete`, and `cancelled`. Existing records are not
-rewritten; legacy statuses do not count toward totals and must be changed to an
-allowed status before saving. No database migration is performed by this change.
+use title-case storage values, with `Pending` as the default.
+The enum excludes `paic`, `complete`, and `cancelled`. Run `node scripts/migrate-client-filing-statuses.js` before deployment to convert
+existing lowercase statuses to title case and remove obsolete standalone `stage`
+fields for recognized statuses. The migration preserves timestamps and increments
+changed record versions. Unknown statuses require manual review. The separate
+ClientService VAT workflow stage field is unchanged.

@@ -2,7 +2,7 @@ import mongoose from "mongoose";
 import { createModelOptions } from "../../common/models/model.schema.js";
 import { formatVatAmount, parseVatDate, vatMinorUnits } from "../utils/clientVat.utils.js";
 
-export const CLIENT_FILING_STATUSES = Object.freeze(["draft", "pending", "submitted", "paid", "overdue", "rejected"]);
+export const CLIENT_FILING_STATUSES = Object.freeze(["Draft", "Pending", "Submitted", "Paid", "Overdue", "Rejected"]);
 
 // Validates decimal money using the existing exact, two-decimal financial policy.
 // Invalid precision and out-of-range amounts fail schema validation before persistence.
@@ -42,7 +42,18 @@ export function createClientFilingSchema(collection) {
     },
     filingDate: { type: Date, set: parseFilingDate },
     nextDueDate: { type: Date, required: true, set: parseFilingDate },
-    status: { type: String, enum: CLIENT_FILING_STATUSES, default: "pending", required: true },
+    periodStart: {
+      type: String,
+      trim: true,
+      match: [/^(0[1-9]|1[0-2])-\d{4}$/, "Period start must use the MM-YYYY format."],
+    },
+    periodEnd: {
+      type: String,
+      trim: true,
+      match: [/^(0[1-9]|1[0-2])-\d{4}$/, "Period end must use the MM-YYYY format."],
+    },
+    notes: { type: String, trim: true },
+    status: { type: String, enum: CLIENT_FILING_STATUSES, default: "Pending", required: true },
   }, {
     ...options,
     toJSON: { ...options.toJSON, virtuals: true },

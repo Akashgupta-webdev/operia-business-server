@@ -25,6 +25,8 @@ explicitly uses page/limit pagination like the Client Company list.
 | healthInsurance | Client, Client Member | healthInsurance.healthInsuranceCardNumber | healthInsurance.healthInsuranceExpiryDate |
 | establishment | Client Company | establishment.establishmentCard | establishment.establishmentCardExpiry |
 | tradeLicence | Client Company | tradeLicence.tradeLicenceNo | tradeLicence.tradeLicenceExpiry |
+| civilDefenceCertificate | Client Company | civilDefenceCertificate.certificationNo | civilDefenceCertificate.expiryDate |
+| commercialTradeLicence | Client Company | commercialTradeLicence.licenceNo | commercialTradeLicence.expiryDate |
 | document | Client Document | documentTitle | expiryDate |
 | driverLicence | Client Driver | name | licenceExpiryDate |
 | vehicleRegistration | Client Vehicle | registrationNumer | registrationExpiry |
@@ -78,4 +80,5 @@ failures use the standard 500 error envelope.
 
 Item category labels are Passport, Emirates ID, Visa, Health Insurance,
 Establishment Card, Trade Licence, Document, Driver Licence, Vehicle Registration,
-and Vehicle Insurance. The category field retains its existing machine-readable value.
+Vehicle Insurance, Civil Defence Certificate, and Commercial Trade Licence.
+The category field retains its existing machine-readable value.

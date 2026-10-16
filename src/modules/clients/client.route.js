@@ -1,4 +1,6 @@
 import express from "express";
+import { createFilingWriteHandler } from "./controller/clientFilingWrite.controller.js";
+import { validateFilingWrite } from "./validators/clientFilingBody.validator.js";
 import { getClientVATFilings, getClientTAXFilings } from "./controller/clientFiling.controller.js";
 import { validateClientFilingQuery } from "./validators/clientFilingQuery.validator.js";
 import {
@@ -26,6 +28,7 @@ import {
 import {
   getClientCompanies,
   updateClientCompanyInformation,
+  updateNextVATorTAXDueDate,
 } from "./controller/clientCompany.controller.js";
 import { getClientDashboardKPI } from "./controller/clientDashboard.controller.js";
 import {
@@ -51,7 +54,7 @@ import {
   validateCreateClient,
   validateUpdateClientInformation,
 } from "./validators/clientBody.validator.js";
-import { validateUpdateClientCompanyInformation } from "./validators/clientCompanyBody.validator.js";
+import { validateUpdateClientCompanyInformation, validateUpdateNextVATorTAXDueDate } from "./validators/clientCompanyBody.validator.js";
 import { validateGetClientCompanies } from "./validators/clientCompanyQuery.validator.js";
 import { validateGetClientDashboardKPI } from "./validators/clientDashboard.validator.js";
 import {
@@ -83,6 +86,19 @@ import { handleVatRequest } from "./controller/clientVat.controller.js";
 import { validateVatRequest, vatActionSchemas } from "./validators/clientVat.validator.js";
 
 const ClientRoute = express.Router();
+
+for (const type of ["VAT", "TAX"]) {
+  ClientRoute.post(`/createFiling${type}/:companyId`, authorize("ADMIN"), validateFilingWrite("create"), createFilingWriteHandler(type, "create"));
+  ClientRoute.patch(`/updateFiling${type}/:id`, authorize("ADMIN"), validateFilingWrite("update"), createFilingWriteHandler(type, "update"));
+  ClientRoute.delete(`/deleteFiling${type}/:id`, authorize("ADMIN"), validateFilingWrite("delete"), createFilingWriteHandler(type, "delete"));
+}
+
+ClientRoute.patch(
+  "/updateNextVATorTAXDueDate/:companyId",
+  authorize("ADMIN"),
+  validateUpdateNextVATorTAXDueDate,
+  updateNextVATorTAXDueDate
+);
 
 ClientRoute.get("/:id/vat-filings", authorize("ADMIN"), validateGetClientDetails, validateClientFilingQuery, getClientVATFilings);
 ClientRoute.get("/:id/tax-filings", authorize("ADMIN"), validateGetClientDetails, validateClientFilingQuery, getClientTAXFilings);

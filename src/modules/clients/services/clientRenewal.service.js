@@ -18,6 +18,8 @@ const renewalSources = [
   { model: ClientCompany, source: "company", entity: "companyName", fields: [
     ["establishment", "establishment.establishmentCard", "establishment.establishmentCardExpiry"],
     ["tradeLicence", "tradeLicence.tradeLicenceNo", "tradeLicence.tradeLicenceExpiry"],
+    ["civilDefenceCertificate", "civilDefenceCertificate.certificationNo", "civilDefenceCertificate.expiryDate"],
+    ["commercialTradeLicence", "commercialTradeLicence.licenceNo", "commercialTradeLicence.expiryDate"],
   ] },
   { model: ClientDocument, source: "document", fields: [
     ["document", "documentTitle", "expiryDate"],

@@ -2,6 +2,36 @@ import logger from "../../../logger/index.js";
 import { ClientCompanyUpdateValidationError } from "../errors/clientCompanyUpdate.error.js";
 import { getClientCompanies as getClientCompaniesService } from "../services/clientCompanyQuery.service.js";
 import { updateClientCompanyInformation as updateClientCompanyInformationService } from "../services/clientCompanyUpdate.service.js";
+import { updateNextVATorTAXDueDate as updateNextVATorTAXDueDateService } from "../services/clientCompanyUpdate.service.js";
+
+// Updates the requested Company's VAT and TAX due dates from validated input.
+// Returns the standard resource envelope and delegates logged failures to error middleware.
+export const updateNextVATorTAXDueDate = async (req, res, next) => {
+  try {
+    const company = await updateNextVATorTAXDueDateService(
+      req.validatedParams.companyId,
+      req.validatedBody
+    );
+    res.set("ETag", `"${company.version}"`);
+    return res.status(200).json({
+      data: company,
+      meta: { correlationId: req.correlationId },
+    });
+  } catch (error) {
+    console.error("Client Company compliance due date update failed.", {
+      errorName: error.name,
+      errorCode: error.code,
+    });
+    logger.error("Client Company compliance due date update failed.", {
+      errorName: error.name,
+      errorCode: error.code,
+      companyId: req.validatedParams?.companyId,
+      actorId: req.user?.id,
+      correlationId: req.correlationId,
+    });
+    return next(error);
+  }
+};
 
 // Returns a validated page of Client Companies with selected owning-Client information.
 // Aggregation failures are safely logged and delegated to the shared API error handler.
@@ -77,6 +107,7 @@ export const updateClientCompanyInformation = async (req, res, next) => {
 };
 
 const ClientCompanyController = {
+  updateNextVATorTAXDueDate,
   getClientCompanies,
   updateClientCompanyInformation,
 };

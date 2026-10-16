@@ -21,7 +21,7 @@ test("compliance detail scopes filing totals, handles missing data and UAE deadl
   });
   for (const [model, count] of [[ClientVATFiling, 3], [ClientTAXFiling, 2]]) {
     t.mock.method(model, "countDocuments", (filter) => {
-      assert.deepEqual(filter, { client: id, status: "paid" });
+      assert.deepEqual(filter, { client: id, status: "Paid" });
       return { async exec() { return count; } };
     });
   }
@@ -50,8 +50,8 @@ test("both filing models accept only the new statuses and company deadlines are 
   for (const Model of [ClientVATFiling, ClientTAXFiling]) {
     const filing = new Model({ client: "68ad00000000000000000001", company: "68ad00000000000000000002",
       input: "1", output: "0", nextDueDate: new Date() });
-    assert.equal(filing.status, "pending");
-    for (const status of ["draft", "pending", "submitted", "paid", "overdue", "rejected"]) {
+    assert.equal(filing.status, "Pending");
+    for (const status of ["Draft", "Pending", "Submitted", "Paid", "Overdue", "Rejected"]) {
       filing.status = status;
       await filing.validate();
     }

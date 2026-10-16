@@ -5,6 +5,8 @@ const renewalCategoryLabels = Object.freeze({
   healthInsurance: "Health Insurance",
   establishment: "Establishment Card",
   tradeLicence: "Trade Licence",
+  civilDefenceCertificate: "Civil Defence Certificate",
+  commercialTradeLicence: "Commercial Trade Licence",
   document: "Document",
   driverLicence: "Driver Licence",
   vehicleRegistration: "Vehicle Registration",
