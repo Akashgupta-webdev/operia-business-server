@@ -1,4 +1,6 @@
 import express from "express";
+import { createInvoiceHandler } from "./controller/clientInvoice.controller.js";
+import { validateInvoiceRequest } from "./validators/clientInvoice.validator.js";
 import { createFilingWriteHandler } from "./controller/clientFilingWrite.controller.js";
 import { validateFilingWrite } from "./validators/clientFilingBody.validator.js";
 import { getClientVATFilings, getClientTAXFilings } from "./controller/clientFiling.controller.js";
@@ -86,6 +88,19 @@ import { handleVatRequest } from "./controller/clientVat.controller.js";
 import { validateVatRequest, vatActionSchemas } from "./validators/clientVat.validator.js";
 
 const ClientRoute = express.Router();
+
+ClientRoute.get("/invoices", authorize("ADMIN"), validateInvoiceRequest("list"), createInvoiceHandler("list"));
+// Creates an invoice from the required customer, company and service payload.
+// Joi validates the request before the controller invokes persistence services.
+ClientRoute.post(
+  "/invoices",
+  authorize("ADMIN"),
+  validateInvoiceRequest("create"),
+  createInvoiceHandler("create")
+);
+ClientRoute.get("/invoices/:id", authorize("ADMIN"), validateInvoiceRequest("detail"), createInvoiceHandler("detail"));
+ClientRoute.patch("/invoices/:id", authorize("ADMIN"), validateInvoiceRequest("update"), createInvoiceHandler("update"));
+ClientRoute.delete("/invoices/:id", authorize("ADMIN"), validateInvoiceRequest("delete"), createInvoiceHandler("delete"));
 
 for (const type of ["VAT", "TAX"]) {
   ClientRoute.post(`/createFiling${type}/:companyId`, authorize("ADMIN"), validateFilingWrite("create"), createFilingWriteHandler(type, "create"));

@@ -95,11 +95,21 @@ The endpoint returns `200 OK`. `companyName` is the most recently created
 related Company's name, or `null` when the Client has no Company. Counts cover
 all related records, not only records displayed on the current page.
 
+clientId is the Client _id as a string; the existing _id field is retained.
+companyId and vatTaxRegistrationNumber come from the same most recently created
+Company used for companyName (createdAt descending, _id ascending for ties).
+companyId is a string or null when there is no Company. vatTaxRegistrationNumber
+is null when that Company has no VAT number or the Client has no Company; it
+does not fall back to an older Company's VAT number.
+
 ```json
 {
   "data": [
     {
       "_id": "68ad00000000000000000001",
+      "clientId": "68ad00000000000000000001",
+      "companyId": "68ad00000000000000000002",
+      "vatTaxRegistrationNumber": "104679354100003",
       "name": "Example Person",
       "clientType": "COMPANY",
       "mobileNumber": "+971501234567",

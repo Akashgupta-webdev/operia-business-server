@@ -24,6 +24,7 @@ export const buildGetClientsPipeline = ({
 }, { complianceService, includeVatRegistration = false } = {}) => {
   const pipeline = [];
   const isComplianceList = typeof complianceService === "boolean";
+  const includeCompanyVat = includeVatRegistration || !isComplianceList;
   const clientFilter = {
     ...(status ? { status } : {}),
     ...(clientType ? { clientType } : {}),
@@ -46,7 +47,7 @@ export const buildGetClientsPipeline = ({
         pipeline: [
           { $match: { $expr: { $eq: ["$client", "$$clientId"] } } },
           { $sort: { createdAt: -1, _id: 1 } },
-          { $project: { companyName: 1, ...(includeVatRegistration ? { vatTaxRegistrationNumber: 1 } : {}) } },
+          { $project: { companyName: 1, ...(includeCompanyVat ? { vatTaxRegistrationNumber: 1 } : {}) } },
         ],
         as: "companies",
       },
@@ -110,7 +111,7 @@ export const buildGetClientsPipeline = ({
             companyName: {
               $ifNull: [{ $arrayElemAt: ["$companies.companyName", 0] }, null],
             },
-            ...(includeVatRegistration ? {
+            ...(includeCompanyVat ? {
               vatTaxRegistrationNumber: {
                 $let: {
                   vars: { company: { $arrayElemAt: ["$companies", 0] } },
@@ -119,6 +120,13 @@ export const buildGetClientsPipeline = ({
               },
             } : {}),
             ...(!isComplianceList ? {
+              clientId: { $toString: "$_id" },
+              companyId: {
+                $let: {
+                  vars: { company: { $arrayElemAt: ["$companies", 0] } },
+                  in: { $toString: { $ifNull: ["$$company._id", null] } },
+                },
+              },
               clientType: { $ifNull: ["$clientType", null] },
               emailAddress: { $ifNull: ["$emailAddress", null] },
               status: { $ifNull: ["$status", null] },
