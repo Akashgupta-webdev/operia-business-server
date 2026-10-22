@@ -26,8 +26,16 @@ supplied invoice facts; no tax base or line-total formula is inferred.
 
 grandTotalTaxAmount sums service.taxAmount; grandTotalAmount sums
 service.grandTotal. Both are stored before saves, using exact integer fils.
-They cannot be supplied through the API. Returned money uses Decimal128 JSON
-objects such as { "$numberDecimal": "420.00" }.
+They cannot be supplied through the API. List and write responses return money
+as Decimal128 JSON objects such as { "$numberDecimal": "420.00" }.
+GET /api/v1/client/invoices/:id returns numeric amounts directly: the service
+fields govtRate, servicePrice, taxAmount and grandTotal, and the invoice fields
+grandTotalTaxAmount and grandTotalAmount (for example, "govtRate": 500).
+Detail consumers must read these values directly instead of .$numberDecimal.
+The detail response always includes data.contactNo: the saved invoice contact
+number as a string, or null when no contact number was saved.
+Storage and calculations remain exact Decimal128/integer fils; detail response
+numbers use JavaScript number precision and do not preserve trailing zeros.
 
 invoiceNo is generated on document save through the common Counter service,
 using UTC creation year: OP-YYYY-0001. Both invoice types share the yearly

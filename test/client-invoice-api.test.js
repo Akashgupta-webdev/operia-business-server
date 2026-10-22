@@ -176,7 +176,20 @@ test("invoice HTTP routes enforce authorization and support create/read/update/d
   assert.equal(creation.data.grandTotalTaxAmount.$numberDecimal, "20.00");
   assert.match(creation.data.invoiceNo, /^OP-\d{4}-0001$/);
   assert.equal(created.headers.get("location"), `/api/v1/client/invoices/${id}`);
-  assert.equal((await fetch(`${base}/${id}`, { headers })).status, 200);
+  const detailResponse = await fetch(`${base}/${id}`, { headers });
+  assert.equal(detailResponse.status, 200);
+  assert.equal(detailResponse.headers.get("etag"), '"0"');
+  const detail = await detailResponse.json();
+  assert.equal(detail.data.id, id);
+  assert.equal(detail.data.invoiceNo, creation.data.invoiceNo);
+  assert.equal(detail.data.grandTotalAmount, 420);
+  assert.equal(detail.data.grandTotalTaxAmount, 20);
+  assert.deepEqual(detail.data.service[0], {
+    itemDescription: "Filing", qty: 1, govtRate: 0, servicePrice: 400,
+    taxCode: 5, taxAmount: 20, grandTotal: 420,
+  });
+  assert.equal(saved.service[0].servicePrice.toString(), "400.00");
+  assert.ok(detail.meta.correlationId);
   const updated = await fetch(`${base}/${id}`, {
     method: "PATCH", headers, body: JSON.stringify({ expectedVersion: 0, invoiceType: "Client To Customer" }),
   });

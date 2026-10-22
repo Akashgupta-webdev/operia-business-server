@@ -1,4 +1,5 @@
 import logger from "../../../logger/index.js";
+import { serializeInvoiceDetail } from "../utils/clientInvoice.utils.js";
 import { ClientInvoiceError } from "../errors/clientInvoice.error.js";
 import { createClientInvoice, getClientInvoice, listClientInvoices, updateClientInvoice, deleteClientInvoice } from "../services/clientInvoice.service.js";
 
@@ -18,7 +19,10 @@ export function createInvoiceHandler(action) {
             : await getClientInvoice(id);
       if (action !== "delete") res.set("ETag", `"${data.version}"`);
       if (action === "create") res.location(`/api/v1/client/invoices/${data._id}`);
-      return res.status(action === "create" ? 201 : 200).json({ data, meta });
+      return res.status(action === "create" ? 201 : 200).json({
+        data: action === "detail" ? serializeInvoiceDetail(data) : data,
+        meta,
+      });
     } catch (error) {
       let responseError = error;
       if (["ValidationError", "CastError", "StrictModeError"].includes(error.name)) {
